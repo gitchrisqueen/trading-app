@@ -88,7 +88,7 @@ class Connection extends EventEmitter {
             return;
         }
 
-        return new Promise((resolve, reject) => {
+        let promise = new Promise((resolve, reject) => {
             this.ws = new WebSocket(`wss://${this.WSdomain}/ws/api/v2`);
             this.ws.onmessage = this.handleWSMessage;
 
@@ -114,13 +114,28 @@ class Connection extends EventEmitter {
 
                 });
 
+
+                throw(new Error("Deribit Connection Closed. We will reconnect when we catch this error"));
+
+            }
+        });
+
+        promise.catch((error) => {
+
+                this.log("Error:");
+                this.log(error.message);
+                this.log(error.stack);
+
                 this.inflightQueue = [];
                 this.authenticated = false;
                 this.connected = false;
                 clearInterval(this.pingInterval);
                 this.reconnect();
-            }
-        });
+            });
+
+        return promise;
+
+
     }
 
     ping = async () => {
@@ -345,7 +360,7 @@ class Connection extends EventEmitter {
         }
 
         this.ws.send(JSON.stringify(payload))
-            .catch((e)=>{
+            .catch((e) => {
                 const reason = new Error(`failed sending message: ${JSON.stringify(payload)}`);
                 reason.stack += `\nCaused By:\n` + e.stack;
                 return reason;
