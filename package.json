@@ -1,0 +1,33 @@
+{
+  "name": "tradinglogic-deribit",
+  "version": "0.1.1",
+  "description": "Implementation of trading logic using Deribit data for BTC futures.",
+  "main": "./src/app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./src/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chrisqueen/tradinglogic-deribit.git"
+  },
+  "author": "Christopher Queen<christopher.queen@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/chrisqueen/tradinglogic-deribit/issues"
+  },
+  "homepage": "https://github.com/chrisqueen/tradinglogic-deribit#readme",
+  "keywords": [
+    "deribit",
+    "tradingview",
+    "crypto",
+    "exchange",
+    "bitcoin",
+    "btc"
+  ],
+  "dependencies": {
+    "ws": "^7.2.5",
+    "bluebird": "^3.7.2",
+    "chalk": "^4.0.0"
+  }
+}

@@ -1,0 +1,12 @@
+# this is our development docker-compose building on top of the production docker-compose, just mounting
+# the sync image and container names - not redefining anything else
+
+version: "2"
+services:
+  tradingcloud:
+    container_name: Trading_Cloud_App
+    volumes:
+      - trading-cloud-sync:/user/src/app:nocopy
+volumes:
+  trading-cloud-sync:
+    external: true
