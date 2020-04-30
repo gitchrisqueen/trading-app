@@ -115,7 +115,12 @@ class Connection extends EventEmitter {
                 });
 
 
-                throw(new Error("Deribit Connection Closed. We will reconnect when we catch this error"));
+                //throw(new Error("Deribit Connection Closed. We will reconnect when we catch this error"));
+                this.inflightQueue = [];
+                this.authenticated = false;
+                this.connected = false;
+                clearInterval(this.pingInterval);
+                this.reconnect();
 
             }
         });
@@ -359,12 +364,16 @@ class Connection extends EventEmitter {
 
         }
 
-        this.ws.send(JSON.stringify(payload))
+        this.ws.send(JSON.stringify(payload));
+
+            /*
             .catch((e) => {
                 const reason = new Error(`failed sending message: ${JSON.stringify(payload)}`);
                 reason.stack += `\nCaused By:\n` + e.stack;
                 return reason;
             });
+
+             */
         /*
        // CDQ - added retry for message that may fail
       try {
