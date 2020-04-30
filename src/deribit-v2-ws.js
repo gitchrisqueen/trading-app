@@ -166,7 +166,7 @@ class Connection extends EventEmitter {
         let hook;
         this.afterReconnect = new Promise(r => hook = r);
         this.isReady = new Promise((r => this.isReadyHook = r));
-        await wait(500);
+        await wait(5000);
         if (this.DEBUG)
             this.log(new Date, ' RECONNECTING...');
         await this.connect();
@@ -418,6 +418,9 @@ class Connection extends EventEmitter {
         return await this.request(`private/cancel_by_label`,
             {
                 'label': label
+            })
+            .catch(e=>{
+                this.log(`Could not return after cancel_order_by_label() Error : `,e);
             });
     }
 
@@ -426,6 +429,9 @@ class Connection extends EventEmitter {
             {
                 'instrument_name': instrument,
                 'type': type
+            })
+            .catch(e=>{
+                this.log(`Could not return after close_position() Error: `,e);
             });
     }
 
@@ -433,8 +439,9 @@ class Connection extends EventEmitter {
         return await this.request(`private/get_position`,
             {
                 'instrument_name': instrument
-            }).catch(error => {
-            throw new Error('[Deribit-v2-ws.js] issue getting positioning: ' + error);
+            })
+            .catch(error => {
+            throw new Error('[Deribit-v2-ws.js] issue getPosition() Error: ' + error);
         });
     }
 
@@ -449,7 +456,10 @@ class Connection extends EventEmitter {
         if (stopPrice) {
             orderEditOptions['price'] = stopPrice;
         }
-        return await this.request(`private/edit`, orderEditOptions);
+        return await this.request(`private/edit`, orderEditOptions)
+            .catch(e=>{
+            this.log(`Could not return after editOrder() : `,e);
+        });
     }
 
     async get_tradingview_chart_data(instrument, start, end, resolution) {
@@ -458,17 +468,22 @@ class Connection extends EventEmitter {
             'start_timestamp': start,
             'end_timestamp': end,
             'resolution': resolution
+        })
+            .catch(e=>{
+            this.log(`Could not return after get_tradingview_chart_data() Error: `,e);
         });
     }
 
     async buy(options) {
-        return await this.request('private/buy', options).catch(e => {
+        return await this.request('private/buy', options)
+            .catch(e => {
             throw new Error(e)
         });
     }
 
     async sell(options) {
-        return await this.request('private/sell', options).catch(e => {
+        return await this.request('private/sell', options)
+            .catch(e => {
             throw new Error(e)
         });
         ;
@@ -490,6 +505,9 @@ class Connection extends EventEmitter {
             'instrument_name': instrument,
             'currency': currency,
             'count': count
+        })
+            .catch(e=>{
+            this.log(`Could not return after get_stop_order_history() Error: `,e);
         });
     }
 
@@ -507,15 +525,24 @@ class Connection extends EventEmitter {
             options['stop_price'] = stopPrice;
         }
 
-        return await this.request('private/edit', options);
+        return await this.request('private/edit', options)
+            .catch(e=>{
+            this.log(`Could not return after edit(): `,e);
+        });
     }
 
     async enable_cancel_on_disconnect() {
-        return await this.request('private/enable_cancel_on_disconnect');
+        return await this.request('private/enable_cancel_on_disconnect')
+            .catch(e=>{
+            this.log(`Could not return after enable_cancel_on_disconnect() Error: `,e);
+        });
     }
 
     async disable_cancel_on_disconnect() {
-        return await this.request('private/disable_cancel_on_disconnect');
+        return await this.request('private/disable_cancel_on_disconnect')
+            .catch(e=>{
+            this.log(`Could not return after disable_cancel_on_disconnect() Error: `,e);
+        });
     }
 
     async get_account_summary(currency, extended) {
@@ -523,7 +550,9 @@ class Connection extends EventEmitter {
             {
                 'currency': currency,
                 'extended': extended
-            })
+            }).catch(e=>{
+                this.log(`Could not return after get_account_summary() Error: `,e);
+        });
     }
 
 }
