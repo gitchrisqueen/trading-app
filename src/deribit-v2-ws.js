@@ -470,7 +470,8 @@ class Connection extends EventEmitter {
             'resolution': resolution
         })
             .catch(e=>{
-            this.log(`Could not return after get_tradingview_chart_data() Error: `,e);
+            this.log(`Could not return after get_tradingview_chart_data() Error: `,e)
+            return {};
         });
     }
 

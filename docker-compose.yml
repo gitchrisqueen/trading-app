@@ -5,4 +5,12 @@ version: "2"
 services:
   tradingcloud:
     container_name: Trading_Cloud_App
-    build: ../trading_cloud
+    #build: ../trading_cloud
+    image: frostbyte07/btc-trading-app:latest
+  ciapp:
+    container_name: Jenkins_CI_APP
+    image: jenkins/jenkins
+    ports:
+    - 8080:8080
+    - 50000:50000
+

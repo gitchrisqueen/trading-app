@@ -210,7 +210,7 @@ class Deribit {
 
     async getPosition() {
         return await this.deribitApi.getPosition(this.getInstrument())
-            .then( (data) => {
+            .then((data) => {
                 let result = {};
                 if (data['result']) {
                     result = data['result'];
@@ -219,8 +219,10 @@ class Deribit {
             })
             .catch(error => {
                 this.log(`getPosition Error:`, error);
-                return {'leverage': 2,
-                'size': 0};
+                return {
+                    'leverage': 2,
+                    'size': 0
+                };
             });
     }
 
@@ -266,7 +268,7 @@ class Deribit {
                 // Place buy order
                 this.log(`placeOrder | Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`);
                 await this.deribitApi.buy(orderOptions)
-                    .then( () => {
+                    .then(() => {
                         return this.log(`${orderType} | ${label} | placed.`);
                     })
                     .catch(error => {
@@ -282,7 +284,7 @@ class Deribit {
                 // Place sell order
                 this.log(`placeOrder | Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`);
                 await this.deribitApi.sell(orderOptions)
-                    .then( () => {
+                    .then(() => {
                         return this.log(`${orderType} | ${label} | placed.`);
                     })
                     .catch(error => {
@@ -296,7 +298,7 @@ class Deribit {
 
     async getAccountSummary() {
         await this.deribitApi.get_account_summary('BTC', true)
-            .then( (data) => {
+            .then((data) => {
                 if (data['result']) {
                     this.portfolio = data['result'];
                 }
@@ -312,11 +314,11 @@ class Deribit {
         let channel = 'user.portfolio.btc';
 
         await this.deribitApi.subscribe('private', channel)
-            .then( () => {
-                return this.log(`Subscribed To Channel: ${channel}`);
+            .then(() => {
+                    return this.log(`Subscribed To Channel: ${channel}`);
                 }
             )
-            .then( () => {
+            .then(() => {
                 return this.deribitApi.on(channel, (data) => {
                     this.portfolio = data;
                     //this.log(`Portfolio Update: `, this.portfolio);
@@ -332,6 +334,11 @@ class Deribit {
     async getBars(start, stop, resolution) {
         return await this.deribitApi.get_tradingview_chart_data(this.getInstrument(), start, stop, resolution)
             .then(response => {
+
+                if (!response.result) {
+                    this.log(`Error Getting Bars from API.`);
+                    return [];
+                }
                 const data = response.result;
 
                 //this.log(`Get Bars Response`);
@@ -385,7 +392,7 @@ class Deribit {
         let channel = "chart.trades." + this.getInstrument() + "." + timeframe;
         await this.deribitApi.subscribe('private', channel)
             .then(() => {
-                return this.log(`Subscribed To Channel: ${channel}`);
+                    return this.log(`Subscribed To Channel: ${channel}`);
                 }
             ).then(() => {
                 return this.deribitApi.on(channel, onCallback);
@@ -400,7 +407,7 @@ class Deribit {
         let channel = 'user.orders.' + this.getInstrument() + '.100ms';
         await this.deribitApi.subscribe('private', channel)
             .then(() => {
-                return this.log(`Subscribed To Channel: ${channel}`);
+                    return this.log(`Subscribed To Channel: ${channel}`);
                 }
             ).then(() => {
                 return this.deribitApi.on(channel, onCallback);
