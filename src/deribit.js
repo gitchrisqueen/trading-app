@@ -187,7 +187,7 @@ class Deribit {
     async getOpenOrders(type = "all") {
         return await this.deribitApi.get_open_orders_by_instrument(this.getInstrument(), type)
             .catch(error => {
-                //this.log(`getOpenOrders Error:`, error);
+                this.log(`getOpenOrders Error:`, error);
                 return {'result': []};
             });
     }
@@ -196,7 +196,7 @@ class Deribit {
     async getOpenStopOrders() {
         return await this.getOpenOrders('stop_all')
             .catch(error => {
-                //this.log(`getStopOrders Error:`, error);
+                this.log(`getStopOrders Error:`, error);
                 return {'result': []};
             });
     }

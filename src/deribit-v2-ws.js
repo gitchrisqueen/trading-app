@@ -109,12 +109,9 @@ class Connection extends EventEmitter {
 
                 this.inflightQueue.forEach((queueElement) => {
                     //queueElement.connectionAborted();
-                    try {
-                        //queueElement.connectionAborted(new Error('Deribit Connection Closed'));
-                        queueElement.connectionAborted('Deribit Connection Closed');
-                    } catch (e) {
-                        this.log(`Inflight Error: `, e);
-                    }
+                    queueElement.connectionAborted(new Error('Deribit Connection Closed'));
+                    //queueElement.connectionAborted('Deribit Connection Closed');
+
                 });
 
                 this.inflightQueue = [];
@@ -347,8 +344,12 @@ class Connection extends EventEmitter {
 
         }
 
-        this.ws.send(JSON.stringify(payload));
-
+        this.ws.send(JSON.stringify(payload))
+            .catch((e)=>{
+                const reason = new Error(`failed sending message: ${JSON.stringify(payload)}`);
+                reason.stack += `\nCaused By:\n` + e.stack;
+                return reason;
+            });
         /*
        // CDQ - added retry for message that may fail
       try {
@@ -419,8 +420,8 @@ class Connection extends EventEmitter {
             {
                 'label': label
             })
-            .catch(e=>{
-                this.log(`Could not return after cancel_order_by_label() Error : `,e);
+            .catch(e => {
+                this.log(`Could not return after cancel_order_by_label() Error : `, e);
             });
     }
 
@@ -430,8 +431,8 @@ class Connection extends EventEmitter {
                 'instrument_name': instrument,
                 'type': type
             })
-            .catch(e=>{
-                this.log(`Could not return after close_position() Error: `,e);
+            .catch(e => {
+                this.log(`Could not return after close_position() Error: `, e);
             });
     }
 
@@ -441,8 +442,8 @@ class Connection extends EventEmitter {
                 'instrument_name': instrument
             })
             .catch(error => {
-            throw new Error('[Deribit-v2-ws.js] issue getPosition() Error: ' + error);
-        });
+                throw new Error('[Deribit-v2-ws.js] issue getPosition() Error: ' + error);
+            });
     }
 
     async editOrder(orderId, orderSizeUSD, price = false, stopPrice = false) {
@@ -457,9 +458,9 @@ class Connection extends EventEmitter {
             orderEditOptions['price'] = stopPrice;
         }
         return await this.request(`private/edit`, orderEditOptions)
-            .catch(e=>{
-            this.log(`Could not return after editOrder() : `,e);
-        });
+            .catch(e => {
+                this.log(`Could not return after editOrder() : `, e);
+            });
     }
 
     async get_tradingview_chart_data(instrument, start, end, resolution) {
@@ -469,24 +470,24 @@ class Connection extends EventEmitter {
             'end_timestamp': end,
             'resolution': resolution
         })
-            .catch(e=>{
-            this.log(`Could not return after get_tradingview_chart_data() Error: `,e)
-            return {};
-        });
+            .catch(e => {
+                this.log(`Could not return after get_tradingview_chart_data() Error: `, e)
+                return {};
+            });
     }
 
     async buy(options) {
         return await this.request('private/buy', options)
             .catch(e => {
-            throw new Error(e)
-        });
+                throw new Error(e)
+            });
     }
 
     async sell(options) {
         return await this.request('private/sell', options)
             .catch(e => {
-            throw new Error(e)
-        });
+                throw new Error(e)
+            });
         ;
     }
 
@@ -507,9 +508,9 @@ class Connection extends EventEmitter {
             'currency': currency,
             'count': count
         })
-            .catch(e=>{
-            this.log(`Could not return after get_stop_order_history() Error: `,e);
-        });
+            .catch(e => {
+                this.log(`Could not return after get_stop_order_history() Error: `, e);
+            });
     }
 
     async edit(orderId, orderSizeUSD, price = false, stopPrice = false) {
@@ -527,23 +528,23 @@ class Connection extends EventEmitter {
         }
 
         return await this.request('private/edit', options)
-            .catch(e=>{
-            this.log(`Could not return after edit(): `,e);
-        });
+            .catch(e => {
+                this.log(`Could not return after edit(): `, e);
+            });
     }
 
     async enable_cancel_on_disconnect() {
         return await this.request('private/enable_cancel_on_disconnect')
-            .catch(e=>{
-            this.log(`Could not return after enable_cancel_on_disconnect() Error: `,e);
-        });
+            .catch(e => {
+                this.log(`Could not return after enable_cancel_on_disconnect() Error: `, e);
+            });
     }
 
     async disable_cancel_on_disconnect() {
         return await this.request('private/disable_cancel_on_disconnect')
-            .catch(e=>{
-            this.log(`Could not return after disable_cancel_on_disconnect() Error: `,e);
-        });
+            .catch(e => {
+                this.log(`Could not return after disable_cancel_on_disconnect() Error: `, e);
+            });
     }
 
     async get_account_summary(currency, extended) {
@@ -551,8 +552,8 @@ class Connection extends EventEmitter {
             {
                 'currency': currency,
                 'extended': extended
-            }).catch(e=>{
-                this.log(`Could not return after get_account_summary() Error: `,e);
+            }).catch(e => {
+            this.log(`Could not return after get_account_summary() Error: `, e);
         });
     }
 
