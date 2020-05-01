@@ -1381,21 +1381,44 @@ class TradingLogic {
 
     async handleOpenOrders() {
         this.log(`Handling Open Orders`);
-        this.orders = await this.getOpenOrdersAsBracketOrdersMap();
-        let position = await this.Deribit.getPosition();
-        let positionSize = position['size'];
-        if (this.orders.size === 0 && positionSize !== 0) {
-            //TODO: Determine if this is a good idea or not ?!?!?
-            // If there are no open orders then close any open position
-            this.log(`No open Orders. Closing Open Position(s)`);
-            await this.Deribit.closeOpenPosition();
 
-        } else {
-            this.log(`Open Bracket Orders = ${this.orders.size}`);
-            await this.updateTrailStops(this.orders);
-            await this.handleMissedEntries(this.orders);
-        }
-        this.log(`Finished Handling Open Orders`);
+        await this.getOpenOrdersAsBracketOrdersMap()
+            .then(async (ordersData) => {
+                this.orders = ordersData;
+            })
+            .then(async () => {
+                let position = await this.Deribit.getPosition()
+                    .catch(error => {
+                    this.log(`Error Getting Position While Handling Open Orders`,error);
+                    return {'size': 0};
+                });
+                let positionSize = position['size'];
+                if (this.orders.size === 0 && positionSize !== 0) {
+                    //TODO: Determine if this is a good idea or not ?!?!?
+                    // If there are no open orders then close any open position
+                    this.log(`No open Orders. Closing Open Position(s)`);
+                    await this.Deribit.closeOpenPosition()
+                        .catch(error=>{
+                        this.log(`Error Closing Position While Handling Open Orders`,error);
+                    });
+                } else {
+                    this.log(`Open Bracket Orders = ${this.orders.size}`);
+                    await this.handleMissedEntries(this.orders)
+                        .catch(error=>{
+                        this.log(`Error Handling Missed Entries While Handling Open Orders`,error);
+                    });
+                    await this.updateTrailStops(this.orders)
+                        .catch(error=>{
+                            this.log(`Error Updating Trail Stops While Handling Open Orders`,error);
+                        });
+                }
+            })
+            .catch(error => {
+                this.log(`Error While Handling Open Orders:`, error);
+            })
+            .then(() => {
+                this.log(`Finished Handling Open Orders`);
+            })
     }
 
     async handleMissedEntries(bracketOrderMap) {

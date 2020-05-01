@@ -31,6 +31,11 @@ class Deribit {
         this.DEBUG = true;
         this.mySymbol = 'BTC-PERPETUAL';
 
+        this.position = {
+            'leverage': 2,
+            'size': 0
+        };
+
         this.portfolio = {
             "total_pl": 0,
             "session_upl": 0,
@@ -109,7 +114,7 @@ class Deribit {
                 return this.log(`${new Date} | Disable cancel on disconnect`);
             })
             .catch(error => {
-                return this.log(`${new Date} | cCould not disable cancel on disconnect.`, error);
+                return this.log(`${new Date} | Could not disable cancel on disconnect.`, error);
             });
 
         // Get the account summary so you know amounts to trade
@@ -211,18 +216,14 @@ class Deribit {
     async getPosition() {
         return await this.deribitApi.getPosition(this.getInstrument())
             .then((data) => {
-                let result = {};
                 if (data['result']) {
-                    result = data['result'];
+                    this.position = data['result'];
                 }
-                return result;
+                return this.position;
             })
             .catch(error => {
                 this.log(`getPosition Error:`, error);
-                return {
-                    'leverage': 2,
-                    'size': 0
-                };
+                return this.position;
             });
     }
 
@@ -305,7 +306,8 @@ class Deribit {
                 return this.log(`Account Summary Retrieved: ${JSON.stringify(this.portfolio)}`);
             })
             .catch(error => {
-                return this.log(`Could Not Close Open Position`, error);
+                 this.log(`Could Not Get Open Position. Using previous. Error:`, error);
+                 return this.portfolio;
             });
 
     }
