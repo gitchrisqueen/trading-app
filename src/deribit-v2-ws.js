@@ -150,7 +150,7 @@ class Connection extends EventEmitter {
             if (this.DEBUG)
                 this.log(new Date, ' NO PING RESPONSE');
             this.terminate();
-        }, (this.heartBeat * 1000) * 5); // If 5X the Heartbeat goes by then we will terminate the connection because it is dead
+        }, (this.heartBeat * 1000)); // If 5X the Heartbeat goes by then we will terminate the connection because it is dead
 
         await this.request('public/test');
         clearInterval(timeout);
