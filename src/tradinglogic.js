@@ -230,7 +230,7 @@ class TradingLogic {
                 // Handle missed or straggling entry orders
                 await this.handleOpenOrders();
 
-                this.forceGC();
+               // this.forceGC();
                 break;
         }
     }
