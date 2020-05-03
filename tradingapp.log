@@ -1,0 +1,755 @@
+[run_main_module.js] ---------------->  Connecting to API 
+[run_main_module.js] (Intra-Day)->  Starting Intra-Day Trading 
+[run_main_module.js] (Intra-Day)->  Started 
+[app.js] -------------------------------->  Refresh Token Expires On: Sat May 01 2021 12:04:36 GMT-0400 (Eastern Daylight Time) 
+[app.js] ---------------------------->  Fri May 01 2020 12:14:37 GMT-0400 (Eastern Daylight Time) | connected 
+[app.js] ---------------------------->  Fri May 01 2020 12:14:37 GMT-0400 (Eastern Daylight Time) | Disable cancel on disconnect 
+[app.js] ---------------------------->  Account Summary Retrieved: {"options_pl":0,"options_session_rpl":0,"futures_session_rpl":-0.52860545,"session_rpl":-0.52860545,"options_theta":0,"equity":6.74734996,"margin_balance":6.74734996,"email":"cqueenleaf@gmail.com","type":"main","currency":"BTC","options_delta":0,"username":"cqueen","balance":7.18228289,"available_funds":5.49929918,"options_value":0,"maintenance_margin":0.18923098,"referrer_id":null,"creation_timestamp":1587561378519,"options_vega":0,"futures_pl":0.09367252,"id":17250,"available_withdrawal_funds":5.49929918,"portfolio_margining_enabled":false,"limits":{"non_matching_engine_burst":300,"non_matching_engine":200,"matching_engine_burst":150,"matching_engine":15},"tfa_enabled":false,"system_name":"cqueen","total_pl":0.09367252,"options_session_upl":0,"interuser_transfers_enabled":false,"initial_margin":1.24805078,"deposit_address":"2MwxFUgR9nn8LLzhPMLMva1AFKvNA4VSsSq","options_gamma":0,"futures_session_upl":0.09367252,"session_upl":0.09367252,"session_funding":-0.0013496,"delta_total":27.5204} 
+[app.js] ---------------------------->  My Position: {"total_profit_loss":0.093672516,"size_currency":27.52041915,"size":240780,"settlement_price":8779.64,"realized_profit_loss":-0.52860545,"realized_funding":-0.00010098,"open_orders_margin":0.934977915,"mark_price":8749.14,"maintenance_margin":0.189230979,"leverage":88,"kind":"future","instrument_name":"BTC-PERPETUAL","initial_margin":0.313072866,"index_price":8748.97,"floating_profit_loss":0.093672517,"estimated_liquidation_price":7077.03,"direction":"buy","delta":27.52041915,"average_price":8719.46} 
+[app.js] ---------------------------->  Subscribed To Channel: user.portfolio.btc 
+[app.js] (Intra-Day)------------->  Total Open Bracket Orders: 3 
+[app.js] (Intra-Day)------------->  Total Open Orders: 6 
+[app.js] ---------------------------->  Subscribed To Channel: user.orders.BTC-PERPETUAL.100ms 
+[app.js] (Intra-Day)------------->  Curve: High 
+[deribit.js] ------------------------>  Subscribed To Channel: chart.trades.BTC-PERPETUAL.30 
+[app.js] (Intra-Day)------------->  HL = true | HH = false | LL = false | LH = true 
+[app.js] (Intra-Day)------------->  Trend: Sideways 
+[deribit.js] ------------------------>  Subscribed To Channel: chart.trades.BTC-PERPETUAL.5 
+[app.js] (Intra-Day)------------->  Determining Trades 
+[app.js] (Intra-Day)------------->  Risk Multiplier: 43| oeScore: 6.5 | oeScorePercent: 0.65 | leverage: 89 | maxLeverage: 57.85 
+[app.js] (Intra-Day)------------->  Placing Order. R:R (11)| OE: 6.5 | UID: S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000 | Order Size: 101910 
+[app.js] ---------------------------->  Placing buy_stop_market | Options: {"instrument_name":"BTC-PERPETUAL","amount":101910,"type":"stop_market","label":"S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|stop","reduce_only":true,"stop_price":8750.5,"trigger":"mark_price"} 
+[app.js] ---------------------------->  buy_stop_market | S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|stop | placed. 
+[app.js] ---------------------------->  Placing sell_limit | Options: {"instrument_name":"BTC-PERPETUAL","amount":101910,"type":"limit","label":"S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|entry","price":8749.5} 
+[app.js] ---------------------------->  sell_limit | S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|entry | placed. 
+[app.js] ---------------------------->  Placing buy_limit | Options: {"instrument_name":"BTC-PERPETUAL","amount":101910,"type":"limit","label":"S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|target","price":8738.5} 
+[app.js] ---------------------------->  buy_limit | S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|target | placed. 
+[app.js] (Intra-Day)------------->  Handling Open Orders 
+[app.js] (Intra-Day)------------->  Open Bracket Orders = 4 
+[app.js] (Intra-Day)------------->  Handling Missed Entries 
+[app.js] (Intra-Day)------------->  Price has moved too close to the target without hitting the entry. Cancelling the bracket orders. 
+[app.js] (Intra-Day)------------->  Finished Handling Missed Entries 
+[app.js] (Intra-Day)------------->  Updating Trail Stops 
+[app.js] (Intra-Day)------------->  Finished Updating Trail Stops 
+[app.js] (Intra-Day)------------->  Finished Handling Open Orders 
+[app.js] (Intra-Day)------------->  No GC hook! Start your program as `node --expose-gc app.js`. 
+[deribit.js] ------------------------>  Subscribed To Channel: chart.trades.BTC-PERPETUAL.1 
+[tradinglogic.js] (Intra-Day)---->  Determining Trades 
+[tradinglogic.js] (Intra-Day)---->  Handling Open Orders 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order filled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  Open Bracket Orders = 3 
+[tradinglogic.js] (Intra-Day)---->  Handling Missed Entries 
+[tradinglogic.js] (Intra-Day)---->  Finished Handling Missed Entries 
+[tradinglogic.js] (Intra-Day)---->  Updating Trail Stops 
+[tradinglogic.js] (Intra-Day)---->  Finished Updating Trail Stops 
+[tradinglogic.js] (Intra-Day)---->  Finished Handling Open Orders 
+[tradinglogic.js] (Intra-Day)---->  No GC hook! Start your program as `node --expose-gc tradinglogic.js`. 
+[tradinglogic.js] (Intra-Day)---->  stop Order rejected | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order rejected | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order rejected | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order rejected | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order rejected | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  Determining Trades 
+[tradinglogic.js] (Intra-Day)---->  Didnt place order. R:R (2)| oeScore: 3.5| OE: {"freshness":0,"strength":0,"time":2,"profitZone":1.5} | RR was too low 
+[tradinglogic.js] (Intra-Day)---->  Handling Open Orders 
+[tradinglogic.js] (Intra-Day)---->  Open Bracket Orders = 2 
+[tradinglogic.js] (Intra-Day)---->  Handling Missed Entries 
+[tradinglogic.js] (Intra-Day)---->  Finished Handling Missed Entries 
+[tradinglogic.js] (Intra-Day)---->  Updating Trail Stops 
+[tradinglogic.js] (Intra-Day)---->  Finished Updating Trail Stops 
+[tradinglogic.js] (Intra-Day)---->  Finished Handling Open Orders 
+[tradinglogic.js] (Intra-Day)---->  No GC hook! Start your program as `node --expose-gc tradinglogic.js`. 
+[deribit-v2-ws.js] ---------------------->  Fri May 01 2020 12:18:02 GMT-0400 (Eastern Daylight Time) -> Responding to Heartbeat Request 
+[tradinglogic.js] (Intra-Day)---->  Determining Trades 
+[tradinglogic.js] (Intra-Day)---->  Risk Multiplier: 22| oeScore: 3.5 | oeScorePercent: 0.35 | leverage: 85 | maxLeverage: 29.749999999999996 
+[tradinglogic.js] (Intra-Day)---->  Placing Order. R:R (11)| OE: 3.5 | UID: S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000 | Order Size: 52360 
+[deribit.js] ------------------------>  Placing buy_stop_market | Options: {"instrument_name":"BTC-PERPETUAL","amount":52360,"type":"stop_market","label":"S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|stop","reduce_only":true,"stop_price":8750.5,"trigger":"mark_price"} 
+[deribit.js] ------------------------>  buy_stop_market | S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|stop | placed. 
+[deribit.js] ------------------------>  Placing sell_limit | Options: {"instrument_name":"BTC-PERPETUAL","amount":52360,"type":"limit","label":"S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|entry","price":8749.5} 
+[deribit.js] ------------------------>  sell_limit | S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|entry | placed. 
+[deribit.js] ------------------------>  Placing buy_limit | Options: {"instrument_name":"BTC-PERPETUAL","amount":52360,"type":"limit","label":"S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|target","price":8738.5} 
+[deribit.js] ------------------------>  buy_limit | S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|target | placed. 
+[tradinglogic.js] (Intra-Day)---->  Handling Open Orders 
+[tradinglogic.js] (Intra-Day)---->  Open Bracket Orders = 3 
+[tradinglogic.js] (Intra-Day)---->  Handling Missed Entries 
+[tradinglogic.js] (Intra-Day)---->  Finished Handling Missed Entries 
+[tradinglogic.js] (Intra-Day)---->  Updating Trail Stops 
+[tradinglogic.js] (Intra-Day)---->  Finished Updating Trail Stops 
+[tradinglogic.js] (Intra-Day)---->  Finished Handling Open Orders 
+[tradinglogic.js] (Intra-Day)---->  No GC hook! Start your program as `node --expose-gc tradinglogic.js`. 
+[tradinglogic.js] (Intra-Day)---->  Determining Trades 
+[tradinglogic.js] (Intra-Day)---->  Handling Open Orders 
+[tradinglogic.js] (Intra-Day)---->  Open Bracket Orders = 3 
+[tradinglogic.js] (Intra-Day)---->  Handling Missed Entries 
+[tradinglogic.js] (Intra-Day)---->  Finished Handling Missed Entries 
+[tradinglogic.js] (Intra-Day)---->  Updating Trail Stops 
+[tradinglogic.js] (Intra-Day)---->  Finished Updating Trail Stops 
+[tradinglogic.js] (Intra-Day)---->  Finished Handling Open Orders 
+[tradinglogic.js] (Intra-Day)---->  No GC hook! Start your program as `node --expose-gc tradinglogic.js`. 
+[tradinglogic.js] (Intra-Day)---->  Determining Trades 
+[tradinglogic.js] (Intra-Day)---->  HL = true | HH = false | LL = false | LH = true 
+[tradinglogic.js] (Intra-Day)---->  Trend: Sideways 
+[tradinglogic.js] (Intra-Day)---->  Risk Multiplier: 23| oeScore: 3.5 | oeScorePercent: 0.35 | leverage: 89 | maxLeverage: 31.15 
+[tradinglogic.js] (Intra-Day)---->  Placing Order. R:R (6)| OE: 3.5 | UID: S:8750.5|E:8749.5|T:8743.5|1588318380000|1588348620000 | Order Size: 54740 
+[deribit.js] ------------------------>  Placing buy_stop_market | Options: {"instrument_name":"BTC-PERPETUAL","amount":54740,"type":"stop_market","label":"S:8750.5|E:8749.5|T:8743.5|1588318380000|1588348620000|stop","reduce_only":true,"stop_price":8750.5,"trigger":"mark_price"} 
+[tradinglogic.js] (Intra-Day)---->  stop Order filled | Canceling Bracket Orders 
+[deribit.js] ------------------------>  buy_stop_market | S:8750.5|E:8749.5|T:8743.5|1588318380000|1588348620000|stop | placed. 
+[deribit.js] ------------------------>  Placing sell_limit | Options: {"instrument_name":"BTC-PERPETUAL","amount":54740,"type":"limit","label":"S:8750.5|E:8749.5|T:8743.5|1588318380000|1588348620000|entry","price":8749.5} 
+[deribit.js] ------------------------>  sell_limit | S:8750.5|E:8749.5|T:8743.5|1588318380000|1588348620000|entry | placed. 
+[deribit.js] ------------------------>  Placing buy_limit | Options: {"instrument_name":"BTC-PERPETUAL","amount":54740,"type":"limit","label":"S:8750.5|E:8749.5|T:8743.5|1588318380000|1588348620000|target","price":8743.5} 
+[deribit.js] ------------------------>  buy_limit | S:8750.5|E:8749.5|T:8743.5|1588318380000|1588348620000|target | placed. 
+[tradinglogic.js] (Intra-Day)---->  Handling Open Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order filled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  Open Bracket Orders = 3 
+[tradinglogic.js] (Intra-Day)---->  Handling Missed Entries 
+[tradinglogic.js] (Intra-Day)---->  Finished Handling Missed Entries 
+[tradinglogic.js] (Intra-Day)---->  Updating Trail Stops 
+[tradinglogic.js] (Intra-Day)---->  Finished Updating Trail Stops 
+[tradinglogic.js] (Intra-Day)---->  Finished Handling Open Orders 
+[tradinglogic.js] (Intra-Day)---->  No GC hook! Start your program as `node --expose-gc tradinglogic.js`. 
+[tradinglogic.js] (Intra-Day)---->  stop Order rejected | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order rejected | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order rejected | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order rejected | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order rejected | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order filled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order cancelled | Canceling Bracket Orders 
+[deribit-v2-ws.js] ---------------------->  Fri May 01 2020 12:20:54 GMT-0400 (Eastern Daylight Time)-> CLOSED CON 
+[deribit-v2-ws.js] ---------------------->  Could not return after cancel_order_by_label() Error :  {}
+[deribit-v2-ws.js] ---------------------->  Could not return after cancel_order_by_label() Error :  {}
+[deribit.js] ------------------------>  Could Not Cancel By Label: S:8750.5|E:8749.5|T:8743.5|1588318380000|1588348620000|stop {}
+[deribit.js] ------------------------>  Could Not Cancel By Label: S:8750.5|E:8749.5|T:8743.5|1588318380000|1588348620000|stop {}
+[deribit-v2-ws.js] ---------------------->  Fri May 01 2020 12:20:59 GMT-0400 (Eastern Daylight Time) " RECONNECTING..."
+[deribit-v2-ws.js] ---------------------->  Refresh Token Expires On: Sat May 01 2021 12:10:59 GMT-0400 (Eastern Daylight Time) 
+[tradinglogic.js] (Intra-Day)---->  Determining Trades 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  Risk Multiplier: 25| oeScore: 3.5 | oeScorePercent: 0.35 | leverage: 99 | maxLeverage: 34.65 
+[tradinglogic.js] (Intra-Day)---->  Placing Order. R:R (11)| OE: 3.5 | UID: S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000 | Order Size: 59250 
+[deribit.js] ------------------------>  Placing buy_stop_market | Options: {"instrument_name":"BTC-PERPETUAL","amount":59250,"type":"stop_market","label":"S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|stop","reduce_only":true,"stop_price":8750.5,"trigger":"mark_price"} 
+[deribit.js] ------------------------>  buy_stop_market | S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|stop | placed. 
+[deribit.js] ------------------------>  Placing sell_limit | Options: {"instrument_name":"BTC-PERPETUAL","amount":59250,"type":"limit","label":"S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|entry","price":8749.5} 
+[deribit.js] ------------------------>  sell_limit | S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|entry | placed. 
+[deribit.js] ------------------------>  Placing buy_limit | Options: {"instrument_name":"BTC-PERPETUAL","amount":59250,"type":"limit","label":"S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|target","price":8738.5} 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order cancelled | Canceling Bracket Orders 
+[deribit.js] ------------------------>  buy_limit | S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|target | placed. 
+[tradinglogic.js] (Intra-Day)---->  Handling Open Orders 
+[tradinglogic.js] (Intra-Day)---->  Open Bracket Orders = 3 
+[tradinglogic.js] (Intra-Day)---->  Handling Missed Entries 
+[tradinglogic.js] (Intra-Day)---->  Price has moved too close to the target without hitting the entry. Cancelling the bracket orders. 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  Finished Handling Missed Entries 
+[tradinglogic.js] (Intra-Day)---->  Updating Trail Stops 
+[tradinglogic.js] (Intra-Day)---->  Finished Updating Trail Stops 
+[tradinglogic.js] (Intra-Day)---->  Finished Handling Open Orders 
+[tradinglogic.js] (Intra-Day)---->  No GC hook! Start your program as `node --expose-gc tradinglogic.js`. 
+[deribit-v2-ws.js] ---------------------->  Fri May 01 2020 12:21:02 GMT-0400 (Eastern Daylight Time)-> CLOSED CON 
+[deribit-v2-ws.js] ---------------------->  Could not return after cancel_order_by_label() Error :  {}
+[deribit.js] ------------------------>  Could Not Cancel By Label: S:8750.5|E:8749.5|T:8743.5|1588318380000|1588348620000|stop {}
+[deribit-v2-ws.js] ---------------------->  Fri May 01 2020 12:21:07 GMT-0400 (Eastern Daylight Time) " RECONNECTING..."
+[deribit-v2-ws.js] ---------------------->  Refresh Token Expires On: Sat May 01 2021 12:11:08 GMT-0400 (Eastern Daylight Time) 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  entry Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  stop Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[deribit-v2-ws.js] ---------------------->  Fri May 01 2020 12:21:10 GMT-0400 (Eastern Daylight Time)-> CLOSED CON 
+[deribit-v2-ws.js] ---------------------->  Could not return after cancel_order_by_label() Error :  {}
+[deribit-v2-ws.js] ---------------------->  Could not return after cancel_order_by_label() Error :  {}
+[deribit.js] ------------------------>  Could Not Cancel By Label: S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|stop {}
+[deribit.js] ------------------------>  Could Not Cancel By Label: S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|entry {}
+[deribit-v2-ws.js] ---------------------->  Fri May 01 2020 12:21:15 GMT-0400 (Eastern Daylight Time) " RECONNECTING..."
+[deribit-v2-ws.js] ---------------------->  Refresh Token Expires On: Sat May 01 2021 12:11:15 GMT-0400 (Eastern Daylight Time) 
+[deribit-v2-ws.js] ---------------------->  Fri May 01 2020 12:21:16 GMT-0400 (Eastern Daylight Time)-> CLOSED CON 
+[deribit-v2-ws.js] ---------------------->  Could not return after cancel_order_by_label() Error :  {}
+[deribit.js] ------------------------>  Could Not Cancel By Label: S:8750.5|E:8749.5|T:8738.5|1588318020000|1588348620000|target {}
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[PROCESS] Unhandled Promise Rejection
+- - - - - - - - - - - - - - - 
+Reason
+Error: Deribit Connection Closed
+    at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+    at Array.forEach (<anonymous>)
+    at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+    at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+    at WebSocket.emit (events.js:315:20)
+    at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+    at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+    at TLSSocket.emit (events.js:327:22)
+    at net.js:671:12
+    at TCP.done (_tls_wrap.js:556:7)
+Promise
+Promise {
+  <rejected> Error: Deribit Connection Closed
+      at /Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:113:52
+      at Array.forEach (<anonymous>)
+      at WebSocket.ws.onclose (/Users/christopherqueen/Documents/workspace/btc-trading-app/src/deribit-v2-ws.js:111:36)
+      at WebSocket.onClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/event-target.js:124:16)
+      at WebSocket.emit (events.js:315:20)
+      at WebSocket.emitClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:194:10)
+      at TLSSocket.socketOnClose (/Users/christopherqueen/Documents/workspace/btc-trading-app/node_modules/ws/lib/websocket.js:861:15)
+      at TLSSocket.emit (events.js:327:22)
+      at net.js:671:12
+      at TCP.done (_tls_wrap.js:556:7)
+}
+- - - - - - - - - - - - - - - 
+[deribit-v2-ws.js] ---------------------->  Fri May 01 2020 12:21:21 GMT-0400 (Eastern Daylight Time) " RECONNECTING..."
+[deribit-v2-ws.js] ---------------------->  Refresh Token Expires On: Sat May 01 2021 12:11:21 GMT-0400 (Eastern Daylight Time) 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 
+[tradinglogic.js] (Intra-Day)---->  target Order cancelled | Canceling Bracket Orders 

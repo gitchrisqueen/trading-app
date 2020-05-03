@@ -3,7 +3,6 @@
 */
 
 const chalk = require("chalk");
-
 const dBit = require('./deribit.js');
 
 class TradingLogic {

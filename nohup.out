@@ -1,0 +1,8 @@
+
+> tradinglogic-deribit@0.1.1 start /Users/christopherqueen/Documents/workspace/btc-trading-app
+> NODE_ENV=developmen forever start --spinSleepTime=30000 --minUptime=300000 -d -v -a --sourceDir ./ -p ./ --pidFile ./forever.pid -l ./tradingapp_forever.log -e ./tradingapp_err.log -o ./tradingapp.log -c='node --trace-warnings --expose-gc --max_old_space_size=4096' ./src/app.js
+
+[32minfo[39m:    Forever processing file: [90m./src/app.js[39m
+(node:81715) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:81715) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency

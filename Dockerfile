@@ -1,7 +1,8 @@
-FROM node:12.4
+FROM node
 WORKDIR /usr/src/app
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json* ./
+#COPY node_modules ./
 RUN npm install
-COPY src ./
+COPY src ./src
 EXPOSE 80
-CMD ["node","--expose-gc","--max_old_space_size=4096", "./app.js"]
+CMD ["node","--trace-warnings","--expose-gc","--max_old_space_size=4096","./src/app.js"]

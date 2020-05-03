@@ -5,7 +5,10 @@
   "main": "./src/app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./src/app.js"
+    "startforever": "NODE_ENV=developmen forever start --spinSleepTime=30000 --minUptime=300000 -d -v -a --sourceDir ./ -p ./ --pidFile ./forever.pid -l ./tradingapp_forever.log -e ./tradingapp_err.log -o ./tradingapp.log -c='node --trace-warnings --expose-gc --max_old_space_size=4096' ./src/app.js",
+    "stopforever": "forever stopall",
+    "listforever": "forever list",
+    "start": "node --trace-warnings --expose-gc --max_old_space_size=4096 ./src/app.js"
   },
   "repository": {
     "type": "git",
@@ -28,6 +31,7 @@
   "dependencies": {
     "ws": "^7.2.5",
     "bluebird": "^3.7.2",
-    "chalk": "^4.0.0"
+    "chalk": "^4.0.0",
+    "forever": "^2.0.0"
   }
 }

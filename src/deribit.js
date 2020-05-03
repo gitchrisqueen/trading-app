@@ -4,6 +4,8 @@
 
 let bluebird = require('bluebird');
 const chalk = require("chalk");
+//Deribit API
+const DBV2WS = require('./deribit-v2-ws.js');
 
 process.on("unhandledRejection", function (reason, promise) {
     /* You might start here by adding code to examine the
@@ -21,8 +23,6 @@ process.on("unhandledRejection", function (reason, promise) {
 
 });
 
-//Deribit API
-const DBV2WS = require('./deribit-v2-ws.js');
 
 class Deribit {
 
@@ -82,7 +82,6 @@ class Deribit {
 
 
     }
-
 
     getOrderTypes() {
         return this.orderTypes;
@@ -256,9 +255,12 @@ class Deribit {
             "price": price
         };
 
+        // NOTE: Dont use reduce. That is what the target and stops are for in the bracket order. If you do and there is another bracket order inbetween a previous one it will only reduce the the offset and mess up the encompassing bracket order size.
+        /*
         if (orderSETType === 'stop') {
             orderOptions['reduce_only'] = true; // This will cause stop orders to only reduce the position size. That way we wont stop higher than our current position
         }
+         */
 
         switch (orderType) {
             case this.orderTypes.buystopmarket:
@@ -267,13 +269,13 @@ class Deribit {
                 orderOptions['trigger'] = "mark_price";
             case this.orderTypes.buylimit:
                 // Place buy order
-                this.log(`placeOrder | Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`);
+                this.log(chalk.rgb(0, 255, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
                 await this.deribitApi.buy(orderOptions)
                     .then(() => {
                         return this.log(`${orderType} | ${label} | placed.`);
                     })
                     .catch(error => {
-                        return this.log(`placeOrder ${orderType} | Options: ${JSON.stringify(orderOptions)} Error: ${error}`);
+                        return this.log(chalk.rgb(0, 255, 0)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error}`));
                     });
 
                 break;
@@ -283,13 +285,13 @@ class Deribit {
                 orderOptions['trigger'] = "mark_price";
             case this.orderTypes.selllimit:
                 // Place sell order
-                this.log(`placeOrder | Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`);
+                this.log(chalk.rgb(255, 0, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
                 await this.deribitApi.sell(orderOptions)
                     .then(() => {
                         return this.log(`${orderType} | ${label} | placed.`);
                     })
                     .catch(error => {
-                        return this.log(`placeOrder ${orderType} | Options: ${JSON.stringify(orderOptions)} Error: ${error}`);
+                        return this.log(chalk.rgb(255, 0, 0)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error}`));
                     });
 
                 break;
@@ -306,8 +308,8 @@ class Deribit {
                 return this.log(`Account Summary Retrieved: ${JSON.stringify(this.portfolio)}`);
             })
             .catch(error => {
-                 this.log(`Could Not Get Open Position. Using previous. Error:`, error);
-                 return this.portfolio;
+                this.log(`Could Not Get Open Position. Using previous. Error:`, error);
+                return this.portfolio;
             });
 
     }
@@ -317,7 +319,7 @@ class Deribit {
 
         await this.deribitApi.subscribe('private', channel)
             .then(() => {
-                    return this.log(`Subscribed To Channel: ${channel}`);
+                    this.log(`Subscribed To Channel: ${channel}`);
                 }
             )
             .then(() => {
@@ -394,7 +396,7 @@ class Deribit {
         let channel = "chart.trades." + this.getInstrument() + "." + timeframe;
         await this.deribitApi.subscribe('private', channel)
             .then(() => {
-                    return this.log(`Subscribed To Channel: ${channel}`);
+                    this.log(`Subscribed To Channel: ${channel}`);
                 }
             ).then(() => {
                 return this.deribitApi.on(channel, onCallback);
@@ -409,7 +411,7 @@ class Deribit {
         let channel = 'user.orders.' + this.getInstrument() + '.100ms';
         await this.deribitApi.subscribe('private', channel)
             .then(() => {
-                    return this.log(`Subscribed To Channel: ${channel}`);
+                    this.log(`Subscribed To Channel: ${channel}`);
                 }
             ).then(() => {
                 return this.deribitApi.on(channel, onCallback);

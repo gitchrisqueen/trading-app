@@ -4,6 +4,7 @@
 
 const chalk = require("chalk");
 const WebSocket = require('ws');
+let bluebird = require('bluebird');
 const EventEmitter = require('events');
 
 const wait = n => new Promise(r => setTimeout(r, n));
@@ -12,6 +13,7 @@ class Connection extends EventEmitter {
     constructor({key, secret, domain = 'www.deribit.com', debug = false}) {
         super();
 
+        this.restartCount = 0;
         this.scriptName = '';
         this.DEBUG = debug;
         this.heartBeat = 60 * 1; //1 minutes in seconds
@@ -78,8 +80,9 @@ class Connection extends EventEmitter {
     }
 
     handleError = (e) => {
-        if (this.DEBUG)
-            this.log(new Date, ' Handle ERROR', e);
+        if (this.DEBUG) {
+            this.log(new Date, `Handle ERROR: ${JSON.stringify(e)}`);
+        }
         throw new Error(e);
     };
 
@@ -120,23 +123,29 @@ class Connection extends EventEmitter {
                 this.authenticated = false;
                 this.connected = false;
                 clearInterval(this.pingInterval);
-                this.reconnect();
+                if(this.reconnectingCount<3){
+                    this.reconnect();
+                }else{
+                    this.log(`Cannot properly reconnect to Deribit. Exiting Node and restarting Docker container.`);
+                    process.exit(1);
+                }
+
 
             }
         });
 
         promise.catch((error) => {
 
-                this.log("Error:");
-                this.log(error.message);
-                this.log(error.stack);
+            this.log("Error:");
+            this.log(error.message);
+            this.log(error.stack);
 
-                this.inflightQueue = [];
-                this.authenticated = false;
-                this.connected = false;
-                clearInterval(this.pingInterval);
-                this.reconnect();
-            });
+            this.inflightQueue = [];
+            this.authenticated = false;
+            this.connected = false;
+            clearInterval(this.pingInterval);
+            this.reconnect();
+        });
 
         return promise;
 
@@ -179,6 +188,7 @@ class Connection extends EventEmitter {
 
     reconnect = async () => {
         this.reconnecting = true;
+        this.reconnectingCount++;
 
         let hook;
         this.afterReconnect = new Promise(r => hook = r);
@@ -366,14 +376,14 @@ class Connection extends EventEmitter {
 
         this.ws.send(JSON.stringify(payload));
 
-            /*
-            .catch((e) => {
-                const reason = new Error(`failed sending message: ${JSON.stringify(payload)}`);
-                reason.stack += `\nCaused By:\n` + e.stack;
-                return reason;
-            });
+        /*
+        .catch((e) => {
+            const reason = new Error(`failed sending message: ${JSON.stringify(payload)}`);
+            reason.stack += `\nCaused By:\n` + e.stack;
+            return reason;
+        });
 
-             */
+         */
         /*
        // CDQ - added retry for message that may fail
       try {
@@ -487,7 +497,7 @@ class Connection extends EventEmitter {
         return await this.request(`private/edit`, orderEditOptions)
             .catch(e => {
                 this.log(`Could not return after editOrder() : `, e);
-                throw new Error(`Could not return after editOrder()` );
+                throw new Error(`Could not return after editOrder()`);
             });
     }
 
@@ -508,7 +518,7 @@ class Connection extends EventEmitter {
         return await this.request('private/buy', options)
             .catch(e => {
                 this.log(`Could not return after buy() Error: `, e);
-                throw new Error(`Could not return after buy()` );
+                throw new Error(`Could not return after buy()`);
             });
     }
 
@@ -516,7 +526,7 @@ class Connection extends EventEmitter {
         return await this.request('private/sell', options)
             .catch(e => {
                 this.log(`Could not return after sell() Error: `, e);
-                throw new Error(`Could not return after sell()` );
+                throw new Error(`Could not return after sell()`);
             });
         ;
     }
