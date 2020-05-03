@@ -72,9 +72,9 @@ class Deribit {
         };
 
         // Deribit Credentials
-        const key = 'TrWeoMOY';// test key
-        const secret = '746WeBUuU00AvGI3l6OHu9Gh7DKUVAJyIXjhl7WpeKw';// test secret
-        const domain = 'test.deribit.com';
+        const key = '-JDlWBDK';// test key
+        const secret = 'Xq8MunwKeVMWZUGd1bPZwfa0HqzTCzQjDhiG8PBTyMI';// test secret
+        const domain = 'deribit.com';
         const debug = true;
 
         this.log('Connecting to API');
