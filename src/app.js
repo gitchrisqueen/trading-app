@@ -6,20 +6,21 @@ const TradingLogic = require('./tradinglogic.js');
 
 
 let tradingLogic = new TradingLogic();
+/*
 tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().intraday);
 (async () => {
     tradingLogic.log(`Starting ${tradingLogic.getIncomeLevel()} Trading`);
     await tradingLogic.init();
 })();
 
-/*
+*/
 tradingLogic = new TradingLogic();
 tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().hourly);
 (async () => {
     tradingLogic.log(`Starting ${tradingLogic.getIncomeLevel()} Trading`);
     await tradingLogic.init();
 })();
-
+/*
 tradingLogic = new TradingLogic();
 tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().daily);
 (async () => {

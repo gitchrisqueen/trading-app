@@ -72,8 +72,8 @@ class Deribit {
         };
 
         // Deribit Credentials
-        const key = '-JDlWBDK';// test key
-        const secret = 'Xq8MunwKeVMWZUGd1bPZwfa0HqzTCzQjDhiG8PBTyMI';// test secret
+        const key = 'j7R4-qvQ';// test key
+        const secret = 'v7mAgqGSHFEuemoP70kuL2CQfNLRpTZpm9bNmKibYkM';// test secret
         const domain = 'deribit.com';
         const debug = true;
 
