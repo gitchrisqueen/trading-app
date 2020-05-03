@@ -31,4 +31,4 @@ docker rm "$appName"
 docker pull "$dockerImage"
 
 # Start the conatiner
-docker run -it --name "$appName" --restart unless-stopped "$dockerImage"
+docker run -t -a STDOUT -a STDERR --name "$appName" --restart unless-stopped "$dockerImage"
