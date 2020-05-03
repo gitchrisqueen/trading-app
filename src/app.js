@@ -13,14 +13,15 @@ tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().intraday);
     await tradingLogic.init();
 })();
 
-*/
+
 tradingLogic = new TradingLogic();
 tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().hourly);
 (async () => {
     tradingLogic.log(`Starting ${tradingLogic.getIncomeLevel()} Trading`);
     await tradingLogic.init();
 })();
-/*
+*/
+
 tradingLogic = new TradingLogic();
 tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().daily);
 (async () => {
@@ -28,6 +29,7 @@ tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().daily);
     await tradingLogic.init();
 })();
 
+/*
 
 tradingLogic = new TradingLogic();
 tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().weekly);
