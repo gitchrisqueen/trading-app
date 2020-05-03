@@ -13,7 +13,7 @@ class Connection extends EventEmitter {
     constructor({key, secret, domain = 'www.deribit.com', debug = false}) {
         super();
 
-        this.restartCount = 0;
+        this.reconnectingCount = 0;
         this.scriptName = '';
         this.DEBUG = debug;
         this.heartBeat = 60 * 1; //1 minutes in seconds
