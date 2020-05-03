@@ -74,7 +74,7 @@ class Deribit {
         // Deribit Credentials
         const key = 'j7R4-qvQ';// test key
         const secret = 'v7mAgqGSHFEuemoP70kuL2CQfNLRpTZpm9bNmKibYkM';// test secret
-        const domain = 'deribit.com';
+        const domain = 'www.deribit.com';
         const debug = true;
 
         this.log('Connecting to API');
