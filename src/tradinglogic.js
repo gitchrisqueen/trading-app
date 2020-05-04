@@ -125,6 +125,7 @@ class TradingLogic {
                 this.ITF = 15; // in minutes
                 this.LTF = 5; // in minutes
                 break;
+            default:
             case this.incomeLevels.daily:
                 //  <---- Daily Income ---->
                 this.HTF = '1D'; // in minutes
@@ -415,7 +416,7 @@ class TradingLogic {
                 timeFrameMinuteMultiplier *= (60 * 24 * 30); // 30 days
                 break;
             case this.LTF:
-                timeFrameMinuteMultiplier *= (60 * 24 * 2); //2 days
+                timeFrameMinuteMultiplier *= (60 * 24 * 1); //2 days
                 break;
         }
 
@@ -1388,27 +1389,27 @@ class TradingLogic {
             .then(async () => {
                 let position = await this.Deribit.getPosition()
                     .catch(error => {
-                    this.log(`Error Getting Position While Handling Open Orders`,error);
-                    return {'size': 0};
-                });
+                        this.log(`Error Getting Position While Handling Open Orders`, error);
+                        return {'size': 0};
+                    });
                 let positionSize = position['size'];
                 if (this.orders.size === 0 && positionSize !== 0) {
                     //TODO: Determine if this is a good idea or not ?!?!?
                     // If there are no open orders then close any open position
                     this.log(`No open Orders. Closing Open Position(s)`);
                     await this.Deribit.closeOpenPosition()
-                        .catch(error=>{
-                        this.log(`Error Closing Position While Handling Open Orders`,error);
-                    });
+                        .catch(error => {
+                            this.log(`Error Closing Position While Handling Open Orders`, error);
+                        });
                 } else {
                     this.log(`Open Bracket Orders = ${this.orders.size}`);
                     await this.handleMissedEntries(this.orders)
-                        .catch(error=>{
-                        this.log(`Error Handling Missed Entries While Handling Open Orders`,error);
-                    });
+                        .catch(error => {
+                            this.log(`Error Handling Missed Entries While Handling Open Orders`, error);
+                        });
                     await this.updateTrailStops(this.orders)
-                        .catch(error=>{
-                            this.log(`Error Updating Trail Stops While Handling Open Orders`,error);
+                        .catch(error => {
+                            this.log(`Error Updating Trail Stops While Handling Open Orders`, error);
                         });
                 }
             })
