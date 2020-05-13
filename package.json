@@ -4,7 +4,7 @@
   "description": "Implementation of trading logic using Deribit data for BTC futures.",
   "main": "./src/app.js",
   "scripts": {
-    "test": "jest",
+    "test": "jest --notify --detectOpenHandles --verbose",
     "startforever": "NODE_ENV=developmen forever start --spinSleepTime=30000 --minUptime=300000 -d -v -a --sourceDir ./ -p ./ --pidFile ./forever.pid -l ./tradingapp_forever.log -e ./tradingapp_err.log -o ./tradingapp.log -c='node --trace-warnings --expose-gc --max_old_space_size=4096' ./src/app.js",
     "stopforever": "forever stopall",
     "listforever": "forever list",
