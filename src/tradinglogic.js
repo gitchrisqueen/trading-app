@@ -5,6 +5,7 @@
 const chalk = require("chalk");
 const dBit = require('./deribit.js');
 
+// noinspection DuplicatedCode
 class TradingLogic {
 
     /*
@@ -21,9 +22,12 @@ class TradingLogic {
 
     constructor() {
         this.DEBUG = true;
+        this.testRan = false;
 
         this.scriptName = '';
         this.Deribit = new dBit();
+
+        this.lastAssessmentTime = Date.now();
 
         this.incomeLevels = {
             intraday: "Intra-Day",
@@ -31,7 +35,7 @@ class TradingLogic {
             daily: "Daily",
             weekly: "Weekly",
             monthly: "Monthly"
-        }
+        };
 
         this.htfReward = 1;
         this.htfRisk = 11;
@@ -40,6 +44,8 @@ class TradingLogic {
         this.barMap = new Map();
         this.baseMap = new Map();
         this.zoneMap = new Map();
+
+        this.maxAPIBarInterval = 5000; // TODO: Determine best number of bars to retrieve
 
         this.baseMinSize = 2;
 
@@ -96,10 +102,14 @@ class TradingLogic {
         this.tickValue = 10; // USD
         this.minTickSize = .5; // USD
         this.contractMultiple = 10;
-        this.minOddsEnhancerScore = 0; // TODO: Keep stats and pick the lowest score with the highest win %
-        this.bracketOrder = this.getBracketOrderBlank();
+        this.minOddsEnhancerScore = 7; // TODO: Keep stats and pick the lowest score with the highest win %. NOTE: Setting to 5 to see if we only take halfway good trades (Max OEScore is 10)
+        this.minLeverage = 40;
+        this.maxLeverage = 50;
 
+
+        this.bracketOrder = this.getBracketOrderBlank();
         this.orders = new Map();
+        this.ordersQueue = new Map();
     }
 
     getIncomeLevels() {
@@ -155,16 +165,50 @@ class TradingLogic {
         }
     }
 
+    getMostLiquidInstrument() {
+        let instruments = this.Deribit.getInstruments();
+
+        // TODO: Determine if Perpetual should be removed or not
+        // remove the perpetual so it doesnt sort using it
+        //instruments.delete('BTC-PERPETUAL');
+
+        //this.log(`Deribit Instruments: ${JSON.stringify([...instruments.entries()])}`);
+        let instrumentsSorted = new Map([...instruments.entries()].sort(function ([, x], [, y]) {
+            return (x['volume'] - y['volume'] || x['open_interest'] - y['open_interest']);
+        }));
+
+        //this.log(`Instruments Sorted by Liquidity: ${JSON.stringify([...instrumentsSorted.entries()])}`);
+        let iMap = Array.from(instrumentsSorted.keys());
+        let mostLiquidInstrument = iMap.pop();
+
+        this.log(`Most Liquid Instrument: ${mostLiquidInstrument}`);
+
+        return mostLiquidInstrument;
+    }
+
     async init() {
         this.setScriptName(this.getScriptName());
         this.log('Started');
         await this.Deribit.init();
 
+        // Determine the Dated Contract that is most liquid (highest volume [more important] and open interest)
+        let mostLiquidInstrument = this.getMostLiquidInstrument();
+
+        // Put the instruments in to the map for later use. HTF and ITF use perpetual. LTF uses the most liquid instrument
+        this.insturmentTimeframeMap = new Map();
+        this.insturmentTimeframeMap.set(this.HTF, 'BTC-PERPETUAL');
+        this.insturmentTimeframeMap.set(this.ITF, 'BTC-PERPETUAL');
+        this.insturmentTimeframeMap.set(this.LTF, mostLiquidInstrument);
+
+        // Setup the subscriptions for the instrument we will be executing trades on
+        this.Deribit.setupPositionSubscriptions(mostLiquidInstrument);
+
+
         // Get All Open Orders so they aren't duplicated if system restarts
         await this.trackAllOpenOrders();
 
 
-        await this.Deribit.subscribeOrderUpdates(async (orders) => {
+        await this.Deribit.subscribeOrderUpdates(this.getInstrumentByTimeFrame(this.LTF), async (orders) => {
             await this.handleOrderUpdates(orders);
         });
 
@@ -174,66 +218,215 @@ class TradingLogic {
             this.barMap.set(timeframe, new Map());
 
             // Get All bars for each time frame
-            await this.getAPIBars(timeframe);
+            await this.getAPIBars(timeframe)
+                .then(async () => {
 
-            // Assess information for each timeframe
-            await this.assessTimeFrame(timeframe);
-
-            // Subscribe to the api for new bar data for each time frame
-            this.Deribit.subscribeBars(timeframe, async (data) => {
-
-                // Add new Bar to Bar Map
-                let newBarAdded = this.addSubscribedBarToMap(timeframe, data);
-
-                // Only make new assessments when a new bars is added. Not updated.
-                if (newBarAdded) {
+                    // Assess information for each timeframe
                     await this.assessTimeFrame(timeframe);
-                }
-            }).catch(error => {
-                this.log(`subscribeBars() Error:`, error);
-            });
+
+                })
+                .then(async () => {
+                    // Subscribe to the api for new bar data for each time frame
+                    await this.Deribit.subscribeBars(this.getInstrumentByTimeFrame(timeframe), timeframe, async (data) => {
+
+                        // Add new Bar to Bar Map
+                        let newBarAdded = this.addSubscribedBarToMap(timeframe, data);
+
+                        // Need to place queued orders on every bar movement of LTF
+                        if (timeframe == this.LTF) {
+                            //await this.test(); // TODO: Delete or comment out this line
+
+                            // Place Queue Orders
+                            await this.placeQueuedBracketOrders();
+                        }
+
+                        // Only make new assessments when a new bars is added. Not updated.
+                        if (newBarAdded) {
+                            this.assessTimeFrame(timeframe);
+                        }
+
+                        // Need to update our orders on every bar movement of LTF
+                        if (timeframe == this.LTF) {
+                            // Update any trail stops for better profits or lingering trail stops
+                            // Handle missed or straggling entry orders
+                            await this.handleOpenOrders();
+                        }
+                    }).catch((error) => {
+                        this.log(`subscribeBars() Error:`, error);
+                    });
+
+                });
+
 
         }
     }
 
-    async assessTimeFrame(timeframe) {
+    async test() {
+        if (!this.testRan) {
+            await this.test1();
+            await this.test2()
+            this.test3();
+            this.test4()
+            this.test5();
+            this.testRan = true;
+        } else {
+            this.log(`Test Have Run. Exiting Program`);
+            process.exit(1);
+        }
+    }
+
+    async test1() {
+        this.log(`Test 1: Create a sell bracket order to be placed where the price is between target and entry`)
+        // Create a sell bracket order to be placed where the price is between target and entry
+        let calculatedOddEnhancers = {
+            freshness: 3,
+            strength: 2,
+            time: 2,
+            profitZone: 3
+        };
+        let currentPrice = this.getCurrentPrice(this.LTF);
+        let entry = currentPrice + 500;
+        let stop = currentPrice + 1000
+        let target = currentPrice - 1000;
+        let bracketOrder = this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers);
+        let targetZoneTimeStampMili = Date.now();
+        let entryZoneTimeStampMili = Date.now();
+        let uid = this.getBOUID(bracketOrder, targetZoneTimeStampMili, entryZoneTimeStampMili);
+        await this.placeBracketOrder(uid, bracketOrder);
+
+    }
+
+    async test2() {
+        this.log(`Test 2: Create a buy bracket order to be placed where the price is between entry and stop`);
+        // Create a buy bracket order to be placed where the price is between entry and stop
+        let calculatedOddEnhancers = {
+            freshness: 3,
+            strength: 2,
+            time: 2,
+            profitZone: 3
+        };
+        let currentPrice = this.getCurrentPrice(this.LTF);
+        let entry = currentPrice + 500;
+        let stop = currentPrice - 500
+        let target = currentPrice + 1750;
+        let bracketOrder = this.createCompleteBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target, calculatedOddEnhancers);
+        let targetZoneTimeStampMili = Date.now();
+        let entryZoneTimeStampMili = Date.now();
+        let uid = this.getBOUID(bracketOrder, targetZoneTimeStampMili, entryZoneTimeStampMili);
+        await this.placeBracketOrder(uid, bracketOrder);
+
+    }
+
+    test3() {
+        this.log(`Test 3: Queue a sell entry bracket order to be placed where the price is between stop and entry`);
+        // Queue a sell bracket order to be placed where the price is between stop and entry
+        let calculatedOddEnhancers = {
+            freshness: 3,
+            strength: 2,
+            time: 2,
+            profitZone: 3
+        };
+        let currentPrice = this.getCurrentPrice(this.LTF);
+        let entry = currentPrice - 250;
+        let stop = currentPrice + 250
+        let target = currentPrice - 1750;
+        let bracketOrder = this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers);
+        let targetZoneTimeStampMili = Date.now();
+        let entryZoneTimeStampMili = Date.now();
+        this.queueOrder(bracketOrder, targetZoneTimeStampMili, entryZoneTimeStampMili)
+
+    }
+
+    test4() {
+        this.log(`Test 4: Queue a buy bracket order to be placed where the price is between target and entry`);
+        // Queue a buy bracket order to be placed where the price is between target and entry
+        let calculatedOddEnhancers = {
+            freshness: 3,
+            strength: 2,
+            time: 2,
+            profitZone: 3
+        };
+        let currentPrice = this.getCurrentPrice(this.LTF);
+        let entry = currentPrice - 500;
+        let stop = currentPrice - 1000
+        let target = currentPrice + 1000;
+        let bracketOrder = this.createCompleteBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target, calculatedOddEnhancers);
+        let targetZoneTimeStampMili = Date.now();
+        let entryZoneTimeStampMili = Date.now();
+        this.queueOrder(bracketOrder, targetZoneTimeStampMili, entryZoneTimeStampMili)
+
+    }
+
+    test5() {
+        this.log(`Test 5: Queue a buy bracket order to be placed where the price is between target and entry but closer to the target`);
+        // Queue a buy bracket order to be placed where the price is between target and entry but closer to the target
+        let calculatedOddEnhancers = {
+            freshness: 3,
+            strength: 2,
+            time: 2,
+            profitZone: 3
+        };
+        let currentPrice = this.getCurrentPrice(this.LTF);
+        let entry = currentPrice - 1000;
+        let stop = currentPrice - 1500
+        let target = currentPrice + 500;
+        let bracketOrder = this.createCompleteBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target, calculatedOddEnhancers);
+        let targetZoneTimeStampMili = Date.now();
+        let entryZoneTimeStampMili = Date.now();
+        this.queueOrder(bracketOrder, targetZoneTimeStampMili, entryZoneTimeStampMili)
+
+    }
+
+
+    assessTimeFrame(timeframe) {
         // Map out the bases for the timeframe
+        this.log(`Mapping all Bases for Timeframe: ${timeframe}`);
         this.updateBaseMap(timeframe);
 
         // Need to setup New zoneMap for the timeframe
         this.zoneMap.set(timeframe, this.getZoneTypes());
 
         // Discover supply, demand, and fresh zones on every new zone
+        this.log(`Discovering all Zones for Timeframe: ${timeframe}`);
         this.discoverZones(timeframe);
 
         // Determine important information for the timeframe
-        await this.determineByTimeFrame(timeframe);
+        this.determineByTimeFrame(timeframe);
     }
 
-    async determineByTimeFrame(timeframe) {
+    determineByTimeFrame(timeframe) {
 
         switch (timeframe) {
             case this.HTF:
                 // Find the freshest supply and demand. Divide it into 3 parts. Draw Highlighted Curve zones. Determine place on curve
-                await this.determineCurve();
+                this.determineCurve();
                 this.log(`Curve: ${this.getCurve()}`);
                 break;
             case this.ITF:
                 // Determine Trend
-                await this.determineTrend();
+                this.determineTrend();
                 this.log(`Trend: ${this.getTrend()}`);
                 break;
             case this.LTF:
                 // Determine the trades to make
-                await this.determineTrades();
-
-                // Update any trail stops for better profits or lingering trail stops
-                // Handle missed or straggling entry orders
-                await this.handleOpenOrders();
-
+                this.determineTrades();
                 //this.forceGC();
                 break;
         }
+    }
+
+    zoneProperties(zone, timeframe){
+        let currentPrice = this.getCurrentPrice(timeframe);
+        let min = this.getMinBaseBody(zone);
+        let max = this.getMaxBaseBody(zone);
+        let d1 = Math.abs(currentPrice-min);
+        let d2 = Math.abs(currentPrice-max);
+
+        let prop =  (d1<d2)? {proximal:min, distal: max}:  {proximal:max, distal: min};
+        prop['isFresh'] = this.isFreshZone(zone,timeframe);
+        prop['isSupply'] = prop.proximal > currentPrice;
+        prop['isDemand'] = prop.proximal < currentPrice;
+        return prop;
     }
 
     getZoneTypes() {
@@ -243,6 +436,14 @@ class TradingLogic {
             freshsupply: new Map(),
             freshdemand: new Map()
         };
+    }
+
+    getZoneTimeStampMilli(zone) {
+        return (zone[0] && zone[0].time) ? zone[0].time : 1;
+    }
+
+    getZoneTimeStamp(zone){
+        return this.getZoneTimeStampMilli()/1000;
     }
 
     async trackAllOpenOrders() {
@@ -273,25 +474,25 @@ class TradingLogic {
     }
 
     getCurrentPrice(timeframe) {
-        let price = this.getLastBar(timeframe).close;
-        //this.log(`Current Price: ${price}`);
-        return price;
+        //let currentPrice =  this.getLastBar(timeframe).close;
+        let currentPrice = this.Deribit.getCurrentPriceStored(this.getInstrumentByTimeFrame(timeframe));
+        //this.log(`Current Price: ${currentPrice}`);
+        return currentPrice;
+
     }
 
     getLastBar(timeframe) {
         let mapDesc = new Map([...this.barMap.get(timeframe).entries()].sort());
         let barsDesc = Array.from(mapDesc.values());
-        let lastBar = barsDesc.pop();
         //this.log(`Last bar time: ${lastBar.time}`);
-        return lastBar;
+        return barsDesc.pop();
     }
 
     getFirstBar(timeframe) {
         let mapDesc = new Map([...this.barMap.get(timeframe).entries()].sort());
         let barsDesc = Array.from(mapDesc.values());
-        let firstBar = barsDesc.shift();
         //this.log(`First bar: ${firstBar.time}`);
-        return firstBar;
+        return barsDesc.shift();
     }
 
     discoverZones(timeframe) {
@@ -347,25 +548,44 @@ class TradingLogic {
 
 
     updateBaseMap(timeframe) {
+        //Dont delete bases. They dont change. Just update since last bar time
         //this.log(`Updating BaseMap for Timeframe: ${timeframe}`);
-        this.baseMap.delete(timeframe);
-        let bars = this.getBarsMapped(timeframe);
-        //this.log(`Bars Count: ${bars.size}`);
-        this.baseMap.set(timeframe, this.discoverBasesFromBars(bars));
-        //let bases = this.getBasesTimeFrame(timeframe);
-        //this.log(`Bases Found: ${bases.length}`);
+        let merged;
+        if (this.baseMap.has(timeframe)) {
+
+            let currentBaseMap = this.baseMap.get(timeframe);
+            let currentBaseMapKeys = Array.from(currentBaseMap.keys()).sort();
+            let lastBaseTime = currentBaseMapKeys.pop;
+
+            // Get bars from the last base time to now to add new basses
+            let bars = this.getBarsMapped(timeframe, lastBaseTime);
+            //this.log(`Bars Count: ${bars.size}`);
+
+            let newBaseMap = this.discoverBasesFromBars(bars);
+            merged = new Map([...currentBaseMap, ...newBaseMap]);
+        } else {
+            let bars = this.getBarsMapped(timeframe);
+            //this.log(`Bars Count: ${bars.size}`);
+            merged = this.discoverBasesFromBars(bars);
+        }
+
+        this.baseMap.set(timeframe, merged);
+        //this.log(`Bases Found: ${merged.length}`);
 
     }
 
     getBasesTimeFrame(timeframe) {
-        return this.baseMap.get(timeframe);
+        let bases = [];
+        if (this.baseMap.has(timeframe)) {
+            bases = Array.from(this.baseMap.get(timeframe).values());
+        }
+        return bases
     }
 
     discoverBasesFromBars(bars) {
         //this.log(`Bars: `,bars);
         //this.log(`Bars Entries: `,bars.entries());
-
-        let bases = [];
+        let bases = new Map();
         let base = [];
 
         for (const bar of bars.values()) {
@@ -373,7 +593,7 @@ class TradingLogic {
 
             if (this.isExcitingBar(bar)) {
                 if (base.length >= this.baseMinSize) {
-                    bases.push(base);
+                    bases.set(base[0].time, base);
                 }
                 base = [];
             } else if (this.isBoringBar(bar)) {
@@ -382,7 +602,7 @@ class TradingLogic {
         }
 
         if (base.length >= this.baseMinSize) {
-            bases.push(base);
+            bases.set(base[0].time, base);
         }
         return bases;
     }
@@ -402,26 +622,42 @@ class TradingLogic {
         return new Map([...bars.entries()].sort().filter(([k, v]) => (from <= v.time && v.time <= to)));
     }
 
-    async getAPIBars(timeframe) {
-        // 8 weeks ago
-        let timeFrameMinuteMultiplier = this.getTimeFrameInMinutes(timeframe); // Minute(s)
+    div_mod(a, b) {
+        a = parseInt(a);
+        b = parseInt(b);
+        if (b <= 0)
+            throw new Error("b cannot be zero. Undefined.");
+
+        return [Math.floor(a / b), a % b];
+    }
+
+    async getAPIBars(timeframe, from = false, to = false) {
+
+        this.log(`Getting API Bars for Timeframe: ${timeframe}`);
+        let timeFrameInMinutes = this.getTimeFrameInMinutes(timeframe); // Minute(s)
+        let timeFrameMinuteMultiplier = 1;
+
         // TODO: Need to adjust for higher timeframes ???
         // Multiply/Divide by the delta of the next level
 
+        //let divisor = 1;
         switch (timeframe) {
             case this.HTF:
-                timeFrameMinuteMultiplier *= (60 * 24 * 30 * 3); // 3 months
+                //divisor = this.div_mod(this.getTimeFrameInMinutes(this.HTF),this.getTimeFrameInMinutes(this.ITF))[0];
+                timeFrameMinuteMultiplier = (60 * 24 * 31 * 3); // 3 months
                 break;
             case this.ITF:
-                timeFrameMinuteMultiplier *= (60 * 24 * 30); // 30 days
+                //divisor = this.div_mod(this.getTimeFrameInMinutes(this.ITF),this.getTimeFrameInMinutes(this.LTF))[0];
+                timeFrameMinuteMultiplier = (60 * 24 * 31); // 31 days (1 month)
                 break;
             case this.LTF:
-                timeFrameMinuteMultiplier *= (60 * 24 * 1); //2 days
+                timeFrameMinuteMultiplier = (60 * 24 * 3); // 3 days
                 break;
         }
 
-        let from = new Date(Date.now() - (1000 * 60 * timeFrameMinuteMultiplier)).getTime();
-        let to = Date.now();
+
+        from = (from) ? from : new Date(Date.now() - (1000 * 60 * timeFrameMinuteMultiplier)).getTime();
+        to = (to) ? Math.min(to, Date.now()) : Date.now();
 
         /*
         let date = new Date();
@@ -433,16 +669,25 @@ class TradingLogic {
 
          */
 
+        //Break this down into max Interval of bars and loop through
+        let timeFrameInMilliseconds = timeFrameInMinutes * 60 * 1000;
+        let delta = timeFrameInMilliseconds * this.maxAPIBarInterval; // Looping 1000 bars at a time
+        let instrument = this.getInstrumentByTimeFrame(timeframe);
+        for (let i = from; i < to; i += delta) {
 
-        await this.Deribit.getBars(from, to, timeframe)
-            .then(bars => {
-                //this.log(`getAllBars Found Count:`,bars.length);
-                for (const bar of bars) {
-                    //bar['status'] = 'data';
-                    this.addBarToMap(timeframe, bar);
-                }
-            });
+            let nextTo = Math.min(i + delta - timeFrameInMilliseconds, to);
 
+            await this.Deribit.getBars(instrument, i, nextTo, timeframe)
+                .then(bars => {
+                    //this.log(`getAllBars Found Count:`,bars.length);
+                    for (const bar of bars) {
+                        //bar['status'] = 'data';
+                        this.addBarToMap(timeframe, bar);
+                    }
+                });
+        }
+
+        this.log(`Finished Getting API Bars for Timeframe: ${timeframe}`);
     }
 
     addBarToMap(timeframe, bar) {
@@ -452,6 +697,7 @@ class TradingLogic {
         if (!map.has(bar.time)) {
             newBarAdded = true;
         }
+
         // Update or add the new bar
         map.set(bar.time, bar);
         return newBarAdded;
@@ -474,7 +720,7 @@ class TradingLogic {
                 open: data.open,
                 high: data.high,
                 low: data.low,
-                volume: data.cost
+                //volume: data.cost // We dont care about volume. Less data to store
             };
             let newBarAdded = this.addBarToMap(timeframe, bar);
             if (newBarAdded) {
@@ -551,6 +797,7 @@ class TradingLogic {
         return this.getMaxBaseHigh(base);
     }
 
+
     getZoneTouchCount(zone, timeframe) {
         let lastZoneBar = zone[zone.length - 1];
         let lastZoneBarTime = lastZoneBar.time;
@@ -558,26 +805,27 @@ class TradingLogic {
         let zoneMax = this.getMaxBaseHigh(zone);
         let searchBars = this.getBarsMapped(timeframe, lastZoneBarTime);
 
-        let inside = true;
-        let above = false;
-        let below = false;
+        let inside;
         let currentInside;
         let currentAbove;
         let currentBelow;
         let crosses = 0;
+        let processFirstBar = true;
 
         for (const [index, bar] of searchBars) {
-            currentAbove = Math.max(zoneMax, bar.open, bar.close, bar.low, bar.high) > zoneMax;
-            currentBelow = Math.min(zoneMin, bar.open, bar.close, bar.low, bar.high) < zoneMin;
+            currentAbove = Math.max(bar.open, bar.close, bar.low, bar.high) > zoneMax;
+            currentBelow = Math.min(bar.open, bar.close, bar.low, bar.high) < zoneMin;
             currentInside = !currentAbove && !currentBelow;
+            if (processFirstBar) {
+                inside = currentInside;
+                processFirstBar = false;
+            }
 
-            if ((currentInside !== inside) || (currentAbove !== above) || (currentBelow !== below)) {
+            if (currentInside !== inside) {
                 crosses++;
             }
 
             inside = currentInside;
-            above = currentAbove;
-            below = currentBelow;
         }
 
         return crosses;
@@ -603,7 +851,7 @@ class TradingLogic {
             return this.scriptName
         }
 
-        var error = new Error()
+        let error = new Error()
             , source
             , lastStackFrameRegex = new RegExp(/.+\/(.*?):\d+(:\d+)*$/)
             , currentStackFrameRegex = new RegExp(/getScriptName \(.+\/(.*):\d+:\d+\)/);
@@ -616,18 +864,18 @@ class TradingLogic {
             return error.fileName;
     }
 
+    // noinspection DuplicatedCode
     log(message, variable = false) {
         let fileName = `[${this.getScriptName()}] (${this.getIncomeLevel()})`;
         let minLength = 33;
         let maskedFileName = fileName.padEnd(minLength, '-') + '> ';
 
+        if (variable !== false) {
+            message = message + JSON.stringify(variable);
+        }
         message = chalk.yellow.bold(maskedFileName) + chalk.bgYellow.hex('#000000').bold(` ${message} `);
         if (this.DEBUG) {
-            if (variable !== false) {
-                console.log(message + JSON.stringify(variable));
-            } else {
-                console.log(message);
-            }
+            console.log(message);
         }
     }
 
@@ -639,7 +887,7 @@ class TradingLogic {
         }
     }
 
-    async determineCurve() {
+    determineCurve() {
 
         let freshSupply = this.getFreshSupplyTimeFrame(this.HTF);
         if (!freshSupply) {
@@ -677,7 +925,7 @@ class TradingLogic {
                 {type: 'demandProx', price: demandProximal}
             ];
             let priceArraySorted = priceArray.sort((a, b) => (a.price < b.price) ? 1 : -1);
-            let curvePlacementIndex = priceArraySorted.findIndex(item => item.type === "currentPrice");
+            let curvePlacementIndex = priceArraySorted.findIndex(item => item.type == "currentPrice");
 
             //this.log(`[Chart] Price Array Sorted`);
             //this.log(priceArraySorted);
@@ -688,21 +936,22 @@ class TradingLogic {
                 case 1:
                     this.curve = this.curvePlacements.HIGH;
                     break;
+                default:
+                // Equilibrium is the default if we cant determing a curve
                 case 2:
                     this.curve = this.curvePlacements.EQUAL;
                     break;
                 case 3:
                     this.curve = this.curvePlacements.LOW;
                     break;
-                default:
-                    this.curve = this.curvePlacements.UNKOWN;
-                    break;
             }
         } else {
-            this.log(`Cant determine curve without both supply and demand`);
+            this.log(`Cant determine curve without both supply and demand. Setting to EQUAL`);
+            this.curve = this.curvePlacements.EQUAL;
         }
     }
 
+    // noinspection DuplicatedCode
     getLatestSupplyTimeFrame(timeframe) {
         // Note: This is correctly sorting from newest to oldest
         if (!this.zoneMap.has(timeframe)) {
@@ -715,6 +964,7 @@ class TradingLogic {
     }
 
 
+    // noinspection DuplicatedCode
     getFreshSupplyTimeFrame(timeframe) {
         if (!this.zoneMap.has(timeframe)) {
             return false;
@@ -726,6 +976,7 @@ class TradingLogic {
         return (freshSupply && freshSupply.length >= this.baseMinSize) ? freshSupply : false;
     }
 
+    // noinspection DuplicatedCode
     getLatestDemandTimeFrame(timeframe) {
         if (!this.zoneMap.has(timeframe)) {
             return false;
@@ -737,6 +988,7 @@ class TradingLogic {
         return (demand && demand.length >= this.baseMinSize) ? demand : false;
     }
 
+    // noinspection DuplicatedCode
     getFreshDemandTimeFrame(timeframe) {
         if (!this.zoneMap.has(timeframe)) {
             return false;
@@ -749,6 +1001,7 @@ class TradingLogic {
 
     }
 
+    // noinspection DuplicatedCode
     getOpposingDemandZone(timeframe, supplyZone) {
         let zoneFirstTime = supplyZone[0].time;
         if (!this.zoneMap.has(timeframe)) {
@@ -766,6 +1019,7 @@ class TradingLogic {
         return demand;
     }
 
+    // noinspection DuplicatedCode
     getOpposingSupplyZone(timeframe, demandZone) {
         let zoneFirstTime = demandZone[0].time;
         if (!this.zoneMap.has(timeframe)) {
@@ -788,6 +1042,10 @@ class TradingLogic {
         return new Date(year, month, 0).getDate();
     }
 
+    getInstrumentByTimeFrame(timeframe) {
+        return (this.insturmentTimeframeMap.has(timeframe)) ? this.insturmentTimeframeMap.get(timeframe) : 'BTC-PERPETUAL';
+    }
+
     getTimeFrameInMinutes(timeframe) {
         let minutes = parseInt(timeframe);
 
@@ -796,7 +1054,7 @@ class TradingLogic {
             'd': 60 * 24,
             'w': 60 * 24 * 7,
             'm': 60 * 24 * this.daysInMonth(new Date().getMonth() + 1, new Date().getFullYear()),
-        }
+        };
 
         let interval = ('' + timeframe).toLowerCase();
         for (let index in INTERVALS_MAP) {
@@ -813,7 +1071,7 @@ class TradingLogic {
         return minutes;
     }
 
-    async determineTrend() {
+    determineTrend() {
         let pivotSize = (this.getTimeFrameInMinutes(this.HTF) / this.getTimeFrameInMinutes(this.ITF)) - 1;
         //this.log(`Pivot Size: ${pivotSize}`);
         // Find 2 pivot highs and 2 pivot lows
@@ -833,7 +1091,7 @@ class TradingLogic {
                 barRange.pop();
             }
 
-            if (barRange.length == barRangeMaxLength) {
+            if (barRange.length === barRangeMaxLength) {
 
                 //this.log(`Bar Range Length: ${barRange.length}`);
                 //this.log(`Bar Mid Range Index: ${barMidRangeIndex}`);
@@ -842,13 +1100,13 @@ class TradingLogic {
 
                 // Is Pivot High
                 let barRangeHigh = this.getMaxBaseHigh(barRange);
-                if (barRangeHigh == barRange[barMidRangeIndex].high && pivotHighs.length < 2) {
+                if (barRangeHigh === barRange[barMidRangeIndex].high && pivotHighs.length < 2) {
                     //this.log('Found Pivot High');
                     pivotHighs.unshift(barRange[barMidRangeIndex]);
                 }
                 // Is Pivot Low
                 let barRangeLow = this.getMinBaseLow(barRange);
-                if (barRangeLow == barRange[barMidRangeIndex].low && pivotLows.length < 2) {
+                if (barRangeLow === barRange[barMidRangeIndex].low && pivotLows.length < 2) {
                     //this.log('Found Pivot Low');
                     pivotLows.unshift(barRange[barMidRangeIndex]);
                 }
@@ -891,22 +1149,21 @@ class TradingLogic {
         }
     }
 
-    async determineTrades() {
+    determineTrades() {
         this.log(`Determining Trades`);
 
-        if (!this.curve == this.curvePlacements.UNKOWN) {
+        if (this.curve == this.curvePlacements.UNKOWN) {
             throw new Error("Curve is not known");
         }
 
-        if (!this.trend == this.trends.UNKOWN) {
-            throw new Error("trend is not known");
+        if (this.trend == this.trends.UNKOWN) {
+            throw new Error("Trend is not known");
         }
-
 
         let tradeOrders = [], stop, entry, target;
         let calculatedOddEnhancers;
-        let targetZoneTimeStamp = Date.now();
-        let entryZoneTimeStamp = Date.now();
+        let targetZoneTimeStampMili = Date.now();
+        let entryZoneTimeStampMili = Date.now();
 
         // Get Fresh Supply
         let supplyLTF = this.getLatestSupplyTimeFrame(this.LTF);
@@ -925,12 +1182,13 @@ class TradingLogic {
             case this.curvePlacements.HIGH:
                 // "High On Curve" - Sell in big picture supply or wait for pullback to smaller timeframe supply zone
 
+                // noinspection DuplicatedCode
                 switch (this.trend) {
                     case this.trends.UP:
                     case this.trends.STRONGUP:
                         // Sell in big picture supply
                         if (supplyITF) {
-                            entryZoneTimeStamp = supplyITF[0].time;
+                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(supplyITF);
                             stop = this.getSupplyDistalLine(supplyITF);
                             entry = this.getSupplyProximalLine(supplyITF);
                             let risk = Math.abs(entry - stop);
@@ -941,9 +1199,9 @@ class TradingLogic {
                             let opposingDemandZone = this.getOpposingDemandZone(this.ITF, supplyITF);
                             if (opposingDemandZone) {
                                 target = this.getDemandProximalLine(opposingDemandZone);
-                                targetZoneTimeStamp = opposingDemandZone[0].time;
+                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingDemandZone);
                                 calculatedOddEnhancers = this.getOddEnhancers(supplyITF, this.ITF);
-                                tradeOrders.push(this.setBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target));
+                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers));
                             }
                         }
                         break;
@@ -953,7 +1211,7 @@ class TradingLogic {
                         //wait for pullback to smaller timeframe supply zone to sell
 
                         if (supplyLTF) {
-                            entryZoneTimeStamp = supplyLTF[0].time;
+                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(supplyLTF);
                             stop = this.getSupplyDistalLine(supplyLTF);
                             entry = this.getSupplyProximalLine(supplyLTF);
                             let risk = Math.abs(entry - stop);
@@ -964,9 +1222,9 @@ class TradingLogic {
                             let opposingDemandZone = this.getOpposingDemandZone(this.LTF, supplyLTF);
                             if (opposingDemandZone) {
                                 target = this.getDemandProximalLine(opposingDemandZone);
-                                targetZoneTimeStamp = opposingDemandZone[0].time;
+                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingDemandZone);
                                 calculatedOddEnhancers = this.getOddEnhancers(supplyLTF, this.LTF);
-                                tradeOrders.push(this.setBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target));
+                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers));
                             }
                         }
                         break;
@@ -974,13 +1232,14 @@ class TradingLogic {
                 break;
             case this.curvePlacements.EQUAL:
                 // "Equilibrium" - Wait for pull back to smaller timeframe demand to buy or supply to sell
+                // noinspection DuplicatedCode,DuplicatedCode,DuplicatedCode,DuplicatedCode
                 switch (this.trend) {
                     case this.trends.UP:
                     case this.trends.STRONGUP:
                         // Wait for pull back to smaller timeframe  demand to buy
 
                         if (demandLTF) {
-                            entryZoneTimeStamp = demandLTF[0].time;
+                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(demandLTF);
                             stop = this.getDemandDistalLine(demandLTF);
                             entry = this.getDemandProximalLine(demandLTF);
                             let risk = Math.abs(entry - stop);
@@ -991,9 +1250,9 @@ class TradingLogic {
                             let opposingSupplyZone = this.getOpposingSupplyZone(this.LTF, demandLTF);
                             if (opposingSupplyZone) {
                                 target = this.getSupplyProximalLine(opposingSupplyZone);
-                                targetZoneTimeStamp = opposingSupplyZone[0].time;
+                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingSupplyZone);
                                 calculatedOddEnhancers = this.getOddEnhancers(demandLTF, this.LTF);
-                                tradeOrders.push(this.setBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target));
+                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target, calculatedOddEnhancers));
                             }
                         }
                         break;
@@ -1001,7 +1260,7 @@ class TradingLogic {
                         // Sell in a LTF Supply or Buy in a LTF Demand
 
                         if (demandLTF) {
-                            entryZoneTimeStamp = demandLTF[0].time;
+                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(demandLTF);
                             stop = this.getDemandDistalLine(demandLTF);
                             entry = this.getDemandProximalLine(demandLTF);
                             let risk = Math.abs(entry - stop);
@@ -1012,13 +1271,13 @@ class TradingLogic {
                             let opposingSupplyZone = this.getOpposingSupplyZone(this.LTF, demandLTF);
                             if (opposingSupplyZone) {
                                 target = this.getSupplyProximalLine(opposingSupplyZone);
-                                targetZoneTimeStamp = opposingSupplyZone[0].time;
+                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingSupplyZone);
                                 calculatedOddEnhancers = this.getOddEnhancers(demandLTF, this.LTF);
-                                tradeOrders.push(this.setBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target));
+                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target, calculatedOddEnhancers));
                             }
                         }
                         if (supplyLTF) {
-                            entryZoneTimeStamp = supplyLTF[0].time;
+                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(supplyLTF);
                             stop = this.getSupplyDistalLine(supplyLTF);
                             entry = this.getSupplyProximalLine(supplyLTF);
                             let risk = Math.abs(entry - stop);
@@ -1029,9 +1288,9 @@ class TradingLogic {
                             let opposingDemandZone = this.getOpposingDemandZone(this.LTF, supplyLTF);
                             if (opposingDemandZone) {
                                 target = this.getDemandProximalLine(opposingDemandZone);
-                                targetZoneTimeStamp = opposingDemandZone[0].time;
+                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingDemandZone);
                                 calculatedOddEnhancers = this.getOddEnhancers(supplyLTF, this.LTF);
-                                tradeOrders.push(this.setBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target));
+                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers));
                             }
                         }
                         break;
@@ -1040,7 +1299,7 @@ class TradingLogic {
                         //Wait for pull back to smaller timeframe supply to sell
 
                         if (supplyLTF) {
-                            entryZoneTimeStamp = supplyLTF[0].time;
+                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(supplyLTF);
                             stop = this.getSupplyDistalLine(supplyLTF);
                             entry = this.getSupplyProximalLine(supplyLTF);
                             let risk = Math.abs(entry - stop);
@@ -1051,9 +1310,9 @@ class TradingLogic {
                             let opposingDemandZone = this.getOpposingDemandZone(this.LTF, supplyLTF);
                             if (opposingDemandZone) {
                                 target = this.getDemandProximalLine(opposingDemandZone);
-                                targetZoneTimeStamp = opposingDemandZone[0].time;
+                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingDemandZone);
                                 calculatedOddEnhancers = this.getOddEnhancers(supplyLTF, this.LTF);
-                                tradeOrders.push(this.setBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target));
+                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers));
                             }
                         }
                 }
@@ -1061,6 +1320,7 @@ class TradingLogic {
                 break;
             case this.curvePlacements.LOW:
                 // "Low On Curve" - Buy in big picture demand or wait for pullback to smaller timeframe demand zone to buy
+                // noinspection DuplicatedCode
                 switch (this.trend) {
                     case this.trends.UP:
                     case this.trends.STRONGUP:
@@ -1068,7 +1328,7 @@ class TradingLogic {
                         //Wait for pullback to smaller timeframe demand zone to buy
 
                         if (demandLTF) {
-                            entryZoneTimeStamp = demandLTF[0].time;
+                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(demandLTF);
                             stop = this.getDemandDistalLine(demandLTF);
                             entry = this.getDemandProximalLine(demandLTF);
                             let risk = Math.abs(entry - stop);
@@ -1079,9 +1339,9 @@ class TradingLogic {
                             let opposingSupplyZone = this.getOpposingSupplyZone(this.LTF, demandLTF);
                             if (opposingSupplyZone) {
                                 target = this.getSupplyProximalLine(opposingSupplyZone);
-                                targetZoneTimeStamp = opposingSupplyZone[0].time;
+                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingSupplyZone);
                                 calculatedOddEnhancers = this.getOddEnhancers(demandLTF, this.LTF);
-                                tradeOrders.push(this.setBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target));
+                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target, calculatedOddEnhancers));
                             }
                         }
                         break;
@@ -1090,7 +1350,7 @@ class TradingLogic {
                         //Buy in big picture demand
 
                         if (demandITF) {
-                            entryZoneTimeStamp = demandITF[0].time;
+                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(demandITF);
                             stop = this.getDemandDistalLine(demandITF);
                             entry = this.getDemandProximalLine(demandITF);
                             let risk = Math.abs(entry - stop);
@@ -1101,9 +1361,9 @@ class TradingLogic {
                             let opposingSupplyZone = this.getOpposingSupplyZone(this.ITF, demandITF);
                             if (opposingSupplyZone) {
                                 target = this.getSupplyProximalLine(opposingSupplyZone);
-                                targetZoneTimeStamp = opposingSupplyZone[0].time;
+                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingSupplyZone);
                                 calculatedOddEnhancers = this.getOddEnhancers(demandITF, this.ITF);
-                                tradeOrders.push(this.setBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target));
+                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target, calculatedOddEnhancers));
                             }
                         }
                         break;
@@ -1115,42 +1375,37 @@ class TradingLogic {
 
         }
 
-        for (let order of tradeOrders) {
-
-            // Add Odds Enhancer Info
-            order.oddsEnhancer.freshness = calculatedOddEnhancers.freshness;
-            order.oddsEnhancer.strength = calculatedOddEnhancers.strength;
-            order.oddsEnhancer.time = calculatedOddEnhancers.time;
-            order.oddsEnhancer.profitZone = calculatedOddEnhancers.profitZone;
+        for (let bracketOrder of tradeOrders) {
 
             // Order target must have atleast 3:1 Reward to Risk ratio
-            let rr = this.getBORRratio(order);
+            let rr = this.getBORRratio(bracketOrder);
             // Determine if the order has acceptable oddEnhancerScore
-            let oeScoreTotal = this.getOrderOddsEnhancerScore(order);
+            let oeScoreTotal = this.getBracketOrderOddsEnhancerScore(bracketOrder);
 
             if (rr >= this.minRewardRiskRatio) {
 
                 if (oeScoreTotal >= this.minOddsEnhancerScore) {
 
-                    await this.placeOrder(order, targetZoneTimeStamp, entryZoneTimeStamp, rr, oeScoreTotal);
+                    this.queueOrder(bracketOrder, targetZoneTimeStampMili, entryZoneTimeStampMili);
 
                 } else {
-                    this.log(`Didnt place order. R:R (${rr})| oeScore: ${oeScoreTotal}| OE: ${JSON.stringify(order.oddsEnhancer)} | Score was too low`);
+                    this.log(`Didnt place order. R:R (${rr})| oeScore: ${oeScoreTotal}| OE: ${JSON.stringify(bracketOrder.oddsEnhancer)} | Score was too low`);
                 }
             } else {
-                this.log(`Didnt place order. R:R (${rr})| oeScore: ${oeScoreTotal}| OE: ${JSON.stringify(order.oddsEnhancer)} | RR was too low`);
+                this.log(`Didnt place order. R:R (${rr})| oeScore: ${oeScoreTotal}| OE: ${JSON.stringify(bracketOrder.oddsEnhancer)} | RR was too low`);
             }
         }
 
     }
 
     getOddEnhancers(zoneLTF, timeframe) {
-
         //this.log(`[TradingLocig.js] zoneLTF: `, zoneLTF);
 
+        // Calculate Freshness
         let freshnessCount = this.getZoneTouchCount(zoneLTF, timeframe);
         let freshnessLTF = (freshnessCount <= 1) ? 3 : ((freshnessCount == 2) ? 1.5 : 0);
 
+        // calculate Strength
         let legs = this.getLegsOut(zoneLTF, timeframe);
         let strengthLTF = 0;
         if (legs) {
@@ -1163,9 +1418,11 @@ class TradingLogic {
             strengthLTF = !isNaN(strengthAngle) ? ((strengthAngle >= 60) ? 2 : ((strengthAngle >= 45) ? 1 : 0)) : 0;
         }
 
+        // Calculate Time
         let zoneCandles = zoneLTF.length;
         let zoneTimeLTF = (zoneCandles <= 3) ? 2 : ((zoneCandles <= 6) ? 1 : 0);
 
+        // Calculate Profit Zone
         let htfRR = this.getHTFReward() / this.getHTFRisk();
         let zoneProfitHTF = (htfRR >= 3) ? 3 : ((htfRR >= 2) ? 1.5 : 0);
 
@@ -1195,7 +1452,7 @@ class TradingLogic {
     }
 
     getBracketOrderBlank() {
-        let bob = {
+        return {
             BUY: {
                 target: {
                     price: 0,
@@ -1223,6 +1480,7 @@ class TradingLogic {
                     open: 'open',
                     closed: 'closed'
                 },
+                direction: "buy",
                 entryPrice: 0,
                 exitPrice: 0,
                 tradeSize: this.contractMultiple,
@@ -1255,6 +1513,7 @@ class TradingLogic {
                     open: 'open',
                     closed: 'closed'
                 },
+                direction: "sell",
                 entryPrice: 0,
                 exitPrice: 0,
                 tradeSize: this.contractMultiple,
@@ -1266,25 +1525,27 @@ class TradingLogic {
                 }
             }
         };
-        return bob;
     }
 
-    getOrderOddsEnhancerScore(order) {
+    getBracketOrderOddsEnhancerScore(brackerOrder) {
         let score = 0;
-        for (let index in order.oddsEnhancer) {
-            let sc = order.oddsEnhancer[index];
+        let oeScores = brackerOrder.oddsEnhancer;
+        for (let index in oeScores) {
+            let sc = oeScores[index];
             score += sc;
         }
         return score;
     }
 
-    async placeOrder(bracketOrder, targetZoneTimeStamp, entryZoneTimeStamp, rewardRisk = 0, oeScore = 0) {
-        // see if order already placed
+    getBOUID(bracketOrder, targetZoneTimeStampMilli, entryZoneTimeStampMilli) {
         let sp = bracketOrder.stop.price;
         let ep = bracketOrder.entry.price;
         let tp = bracketOrder.target.price;
 
-        let risk = Math.abs(ep - sp);
+        // Take off the milliseconds of the timestamps
+        let targetZoneTimeStamp = targetZoneTimeStampMilli / 1000;
+        let entryZoneTimeStamp = entryZoneTimeStampMilli / 1000;
+
         //this.log(`Risk: ${risk}`);
         // Set the trade size
         let uid = `S:${sp}|E:${ep}|T:${tp}|${targetZoneTimeStamp}|${entryZoneTimeStamp}`;
@@ -1294,39 +1555,132 @@ class TradingLogic {
         //let uid = `${targetZoneTimeStamp}|${entryZoneTimeStamp}`;
         //let uid = `${sp}${ep}${tp}${targetZoneTimeStamp}${entryZoneTimeStamp}`;
 
-        if (!this.orders.has(uid)) {
-            this.orders.set(uid, bracketOrder);
+        return uid;
+    }
 
-            let tradeSize = this.getTradeSize(this.getRiskInTicks(risk)) * await this.getRiskMultiplier(oeScore);
-            bracketOrder.tradeSize = tradeSize;
+    queueOrder(bracketOrder, targetZoneTimeStampMilli, entryZoneTimeStampMilli) {
 
-            if (tradeSize == 0 || !isFinite(tradeSize)) {
-                this.orders.delete(uid);
-                this.log(`Will not place order with 0 or infinity +/- value. | Determined Trade Size: ${tradeSize}`);
-                return;
-            }
+        //TODO: Make these go into and pull from a database
 
-            this.log(`Placing Order. R:R (${rewardRisk})| OE: ${oeScore} | UID: ${uid} | Order Size: ${tradeSize}`);
+        let uid = this.getBOUID(bracketOrder, targetZoneTimeStampMilli, entryZoneTimeStampMilli);
 
-            //order.entry.orderType = order.text;
-            let oArray = {'stop': bracketOrder.stop, 'entry': bracketOrder.entry, 'target': bracketOrder.target};
-
-            // !!! WARNING: Leave this for loop ALONE!!!!
-            for (const index in oArray) {
-                let item = oArray[index];
-                //this.log(`Here: Index: ${index} | Item: ${item}`);
-                await this.Deribit.placeOrder(item.orderType, tradeSize, item.price, uid + '|' + index);
-            }
+        // see if order already queued
+        if (!this.ordersQueue.has(uid)) {
+            this.ordersQueue.set(uid, bracketOrder);
         } else {
-            //this.log(`Order (${uid}) Already placed`);
+            //this.log(`Bracket Order (${uid}) Already Queue'd`);
         }
     }
 
-    btw(search, end1, end2) {
+    async placeQueuedBracketOrders() {
+        //TODO: Make these pull from a database
+
+        this.log(`Queued Bracket Orders: ${this.ordersQueue.size}`);
+
+        for (let [uid, bracketOrder] of this.ordersQueue) {
+            let currentPrice = this.getCurrentPrice(this.LTF);
+            let reward = this.getBOReward(bracketOrder);
+            let priceDelta = Math.abs(bracketOrder.entry.price - currentPrice);
+            let orderReady = false;
+
+            //TODO: Determine if the potential profit is not wiped out by the fees and if so remove the queued order
+
+            // If price is between stop and entry than change entry to "stop_market type" and place order
+            if (this.btw(currentPrice, bracketOrder.stop.price, bracketOrder.entry.price, false)) {
+                this.log(`Order ${bracketOrder.entry.orderType}| UID: ${uid} | Entry Changed to Stop Market Entry | Current Price: ${currentPrice}`);
+                if (bracketOrder.entry.orderType.includes("buy")) {
+                    bracketOrder.entry.orderType = this.Deribit.getOrderTypes().buystopmarket;
+                } else {
+                    bracketOrder.entry.orderType = this.Deribit.getOrderTypes().sellstopmarket;
+                }
+                orderReady = true;
+
+                // If price is between entry and less than 50% toward target place order
+            } else if (priceDelta <= (reward * (1 / 3))) {
+                this.log(`Order ${bracketOrder.entry.orderType}| UID: ${uid} | Entry Changed to Limit Entry | Current Price: ${currentPrice}`);
+                // Change to proper order type in case it was changed before
+                if (bracketOrder.entry.orderType.includes("buy")) {
+                    bracketOrder.entry.orderType = this.Deribit.getOrderTypes().buylimit;
+                } else {
+                    bracketOrder.entry.orderType = this.Deribit.getOrderTypes().selllimit;
+                }
+                orderReady = true;
+            }
+            if (orderReady) {
+                let placed = await this.placeBracketOrder(uid, bracketOrder);
+                if (placed) {
+                    this.log(`Order UID: ${uid} | Removed from Queue`);
+                    this.ordersQueue.delete(uid);
+                }
+            } else {
+                this.log(`Order UID: ${uid} | Not ready to be placed`);
+            }
+        }
+    }
+
+
+    async placeBracketOrder(uid, bracketOrder) {
+        let risk = this.getBORisk(bracketOrder);
+        let rewardRisk = this.getBORRratio(bracketOrder);
+        let oeScore = this.getBracketOrderOddsEnhancerScore(bracketOrder);
+
+        // TODO: Determine if using a variable leveraged multiplier makes since of if causing more loss than gain.
+        bracketOrder.tradeSize = this.getTradeSize(this.getRiskInTicks(risk)) * this.getRiskMultiplier(oeScore, this.minLeverage, this.maxLeverage);//Using leveraged multiplier
+        //bracketOrder.tradeSize = this.getTradeSize(this.getRiskInTicks(risk)); // Not using leveraged multiplier
+
+        if (bracketOrder.tradeSize == 0 || !isFinite(bracketOrder.tradeSize)) {
+            this.log(`Will not place order with 0 or infinity +/- value. | Determined Trade Size: ${bracketOrder.tradeSize}`);
+            return false;
+        }
+
+        this.log(`Placing Order. R:R (${rewardRisk})| OE: ${oeScore} | UID: ${uid} | Order Size: ${bracketOrder.tradeSize}`);
+
+        let promises = [];
+        promises.push(this.getOrderPromise(bracketOrder.stop, uid, 'stop', bracketOrder.tradeSize));
+        promises.push(this.getOrderPromise(bracketOrder.target, uid, 'target', bracketOrder.tradeSize));
+        promises.push(this.getOrderPromise(bracketOrder.entry, uid, 'entry', bracketOrder.tradeSize));
+
+        await Promise.all(promises)
+            .then((responses) => {
+                //responses.map(response => this.log(`Promise Response: ` + response));
+                this.log(`Bracket Order Placed. R:R (${rewardRisk})| OE: ${oeScore} | UID: ${uid} | Order Size: ${bracketOrder.tradeSize}`);
+            })
+            .catch(async (e) => {
+                // Cancel all if one fails
+                this.log(`Order UID: ${uid} | Failed to place. Closing other bracket order | Error: `, e);
+                await this.closeBracket(uid + '|stop', uid + '|target', uid + '|entry')
+                return false;
+            });
+
+        return true;
+    }
+
+    getOrderPromise(order, uid, index, orderSizeUSD) {
+        return new Promise(async (resolve, reject) => {
+            await this.Deribit.placeOrder(this.getInstrumentByTimeFrame(this.LTF), order.orderType, orderSizeUSD, order.price, uid + '|' + index)
+                .then((result) => {
+                    resolve(`Order ${uid}|${index} | Promised Resolved | ${result}`);
+                })
+                .catch((error) => {
+                    this.log(error.message);
+                    reject('Order ' + uid + '|' + index + ' | Promised Rejected');
+                });
+        });
+    }
+
+
+    btw(search, end1, end2, inclusive = true) {
+        search = parseFloat(search);
+        end1 = parseFloat(end1);
+        end2 = parseFloat(end2);
         let trueMin = Math.min(end1, end2);
         let trueMax = Math.max(end1, end2);
 
-        return (trueMin <= search && search >= trueMax);
+        if (inclusive) {
+            return (trueMin <= search && search <= trueMax);
+        } else {
+            return (trueMin < search && search < trueMax);
+        }
     }
 
     getMaxAccountRiskUSD(percent = .02) {
@@ -1345,9 +1699,28 @@ class TradingLogic {
         return total;
     }
 
+    getBracketOrderLabelAsArray(orderLabel) {
+
+        let [sp, ep, tp, targetZoneTimeStamp, entryZoneTimeStamp, ordertype] = orderLabel.split('|');
+        sp = sp.slice(2);
+        ep = ep.slice(2);
+        tp = tp.slice(2);
+
+        return {
+            stopPrice: sp,
+            entryPrice: ep,
+            targetPrice: tp,
+            targetZoneTimeStampMilli: targetZoneTimeStamp * 1000,
+            entryZoneTimeStampMili: entryZoneTimeStamp * 1000,
+            targetZoneTimeStamp: targetZoneTimeStamp,
+            entryZoneTimeStamp: entryZoneTimeStamp,
+            orderType: ordertype
+        };
+    }
+
     async getOpenOrdersAsBracketOrdersMap() {
         // Rebuild bracket orders
-        return await this.Deribit.getOpenOrders()
+        return await this.Deribit.getOpenOrders(this.getInstrumentByTimeFrame(this.LTF))
             .then(openData => {
                 let bracketOrderMap = new Map();
                 let openOrders = openData['result'];
@@ -1372,53 +1745,57 @@ class TradingLogic {
 
                 return bracketOrderMap;
             })
-            .catch(error => {
-                this.log(`Error Getting Open Orders As BracketOrderMap: ${error}`);
+            .catch((error) => {
+                this.log(`Error Getting Open Orders As BracketOrderMap:`, error);
                 return new Map();
             });
 
     }
 
     async handleOpenOrders() {
-        this.log(`Handling Open Orders`);
+        this.orders = await this.getOpenOrdersAsBracketOrdersMap();
 
-        await this.getOpenOrdersAsBracketOrdersMap()
-            .then(async (ordersData) => {
-                this.orders = ordersData;
-            })
-            .then(async () => {
-                let position = await this.Deribit.getPosition()
-                    .catch(error => {
-                        this.log(`Error Getting Position While Handling Open Orders`, error);
-                        return {'size': 0};
+        if (this.orders.size == 0) {
+            this.log(`No Open Orders.`);
+            let position = this.Deribit.getPosition();
+            //this.log(`Position: ${JSON.stringify(position)}`);
+            let positionSize = parseFloat(position['size']);
+            let floating_profit_loss = parseFloat(position['floating_profit_loss']);
+
+            //TODO: Determine if this is a good idea or not ?!?!?
+            // If there are no open orders then close any open position
+
+            if (positionSize == 0) {
+                this.log(`No Open Position(s)`);
+            } else if (floating_profit_loss > 0) {
+                // Close when profit/loss is positive
+                this.log(`Closing Open Position(s)`);
+                await this.Deribit.closeOpenPosition(this.getInstrumentByTimeFrame(this.LTF))
+                    .catch((error) => {
+                        this.log(`Error Closing Position While Handling Open Orders`, error);
                     });
-                let positionSize = position['size'];
-                if (this.orders.size === 0 && positionSize !== 0) {
-                    //TODO: Determine if this is a good idea or not ?!?!?
-                    // If there are no open orders then close any open position
-                    this.log(`No open Orders. Closing Open Position(s)`);
-                    await this.Deribit.closeOpenPosition()
-                        .catch(error => {
-                            this.log(`Error Closing Position While Handling Open Orders`, error);
-                        });
-                } else {
-                    this.log(`Open Bracket Orders = ${this.orders.size}`);
-                    await this.handleMissedEntries(this.orders)
-                        .catch(error => {
-                            this.log(`Error Handling Missed Entries While Handling Open Orders`, error);
-                        });
-                    await this.updateTrailStops(this.orders)
-                        .catch(error => {
-                            this.log(`Error Updating Trail Stops While Handling Open Orders`, error);
-                        });
-                }
-            })
-            .catch(error => {
-                this.log(`Error While Handling Open Orders:`, error);
-            })
-            .then(() => {
-                this.log(`Finished Handling Open Orders`);
-            })
+            } else {
+                this.log(`Waiting for positive profit on position to close`);
+            }
+
+        } else {
+            this.log(`Handling Open Bracket Orders = ${this.orders.size}`);
+            await this.removeBrokenBracketOrders(this.orders)
+                .catch((error) => {
+                    this.log(`Error Removing Broken Bracket Orders While Handling Open Orders`, error);
+                });
+
+            await this.handleMissedEntries(this.orders)
+                .catch((error) => {
+                    this.log(`Error Handling Missed Entries While Handling Open Orders`, error);
+                });
+            await this.updateTrailStops(this.orders)
+                .catch((error) => {
+                    this.log(`Error Updating Trail Stops While Handling Open Orders`, error);
+                });
+            this.log(`Finished Handling Open Bracket Orders`);
+        }
+
     }
 
     async handleMissedEntries(bracketOrderMap) {
@@ -1426,14 +1803,14 @@ class TradingLogic {
         let currentPrice = this.getCurrentPrice(this.LTF);
         for (const uid of bracketOrderMap.keys()) {
             let currentBracketOrder = bracketOrderMap.get(uid);
-            let entryLabel = uid + '|entry';
-            //let stopLabel = uid + '|stop';
-            //let targetLabel = uid + '|target';
+            let stopLabel = (currentBracketOrder.has('stop')) ? uid + '|stop' : false;
+            let targetLabel = currentBracketOrder.has('target') ? uid + '|target' : false;
+            let entryLabel = currentBracketOrder.has('entry') ? uid + '|entry' : false;
 
             // ONLY dealing with fully open bracket orders
             if (currentBracketOrder.has('stop') && currentBracketOrder.has('target') && currentBracketOrder.has('entry')) {
                 let entryPrice = currentBracketOrder.get('entry')['price'];
-                let stopPrice = currentBracketOrder.get('stop')['stop_price'];
+                //let stopPrice = currentBracketOrder.get('stop')['stop_price'];
                 let targetPrice = currentBracketOrder.get('target')['price'];
 
                 //let risk = Math.abs(entryPrice - stopPrice);
@@ -1445,24 +1822,99 @@ class TradingLogic {
                 // OR
                 // Remove bracket orders where the price is closer to the target than the entry
                 //if (rr < this.minRewardRiskRatio || priceDelta > (reward / 2)) {
-                if (priceDelta > (reward * .75)) { // Price is 75% the way to the reward
-                    this.log(`Price has moved too close to the target without hitting the entry. Cancelling the bracket orders.`);
+                if (priceDelta > (reward * (2 / 3))) { // Price is 75% the way to the reward
+                    this.log(`Price has moved (2/3 toward) too close to the target without hitting the entry. Cancelling the bracket orders.`);
                     // Should be able to cancel the entry and all other get canceled on update from the system
-                    await this.Deribit.cancelByLabel(entryLabel);
+                    //await this.Deribit.cancelByLabel(entryLabel);
+                    await this.closeBracket(stopLabel, targetLabel, entryLabel);
                 }
             }
         }
         this.log(`Finished Handling Missed Entries`);
     }
 
+    myXOR(a, b) {
+        return (a || b) && !(a && b);
+    }
+
+    async removeBrokenBracketOrders(bracketOrderMap) {
+        this.log(`Removing Broken Bracket Orders`);
+        // Broken Criteria:
+        // -- A Stop with out a target
+        // -- A Target without a stop
+        // -- A Entry without both a target and a stop
+
+        for (const uid of bracketOrderMap.keys()) {
+            let currentBracketOrder = bracketOrderMap.get(uid);
+            if (this.myXOR(currentBracketOrder.has('stop'), currentBracketOrder.has('target')) ||
+                (currentBracketOrder.has('entry') && (!currentBracketOrder.has('stop') || !currentBracketOrder.has('target')))) {
+                // Remove lingering trail stops that have no targets and no entries
+                this.log(`Found Broken Bracket Order: Removing it Now!`);
+                let stopLabel = (currentBracketOrder.has('stop')) ? uid + '|stop' : false;
+                let targetLabel = currentBracketOrder.has('target') ? uid + '|target' : false;
+                let entryLabel = currentBracketOrder.has('entry') ? uid + '|entry' : false;
+                await this.closeBracket(stopLabel, targetLabel, entryLabel);
+            }
+        }
+        this.log(`Finished Removing Broken Bracket Orders`);
+    }
+
+    async closeBracket(stop = false, target = false, entry = false) {
+        let promises = [];
+        let bracketOrdersClosing = [];
+        if (stop) {
+            promises.push(this.getClosePromise(stop));
+            bracketOrdersClosing.push(stop);
+        }
+        if (target) {
+            promises.push(this.getClosePromise(target));
+            bracketOrdersClosing.push(target);
+        }
+        if (entry) {
+            promises.push(this.getClosePromise(entry));
+            bracketOrdersClosing.push(entry);
+        }
+
+        await Promise.allSettled(promises)
+            .then((results) => {
+                results.forEach((result) => this.log(result.status));
+            })
+            .then(() => {
+                this.log(`Brackets Orders Closed: ${JSON.stringify(bracketOrdersClosing)}`);
+            })
+            .catch(async (e) => {
+                this.log(`Error Closing Bracket Order. | Error: ${e.message}`)
+            })
+    }
+
+    getClosePromise(label) {
+        return new Promise(async (resolve, reject) => {
+            await this.Deribit.cancelByLabel(label)
+                .then((result) => {
+                    resolve(`Closing Order ${label} | Result: ${JSON.stringify(result)}`);
+                })
+                .catch((error) => {
+                    reject(new Error(`Couldn't close ${label} | Error: ${error.message}`));
+                });
+        });
+    }
+
     async updateTrailStops(bracketOrderMap) {
         this.log(`Updating Trail Stops`);
+        let currentPrice = this.getCurrentPrice(this.LTF);
+
         // Get all Stop Market Orders where the entry is filled
         for (const uid of bracketOrderMap.keys()) {
             let currentBracketOrder = bracketOrderMap.get(uid);
 
             // If we have a stop and target but no entry then we want to update trail stops accordingly
             if (currentBracketOrder.has('stop') && currentBracketOrder.has('target') && !currentBracketOrder.has('entry')) {
+
+                // Get the risk delta from the order label
+                let entryOrderLabelArray = this.getBracketOrderLabelAsArray(uid + '|entry');
+                let riskDelta = Math.abs(entryOrderLabelArray.entryPrice - entryOrderLabelArray.stopPrice);
+                let entryPrice = entryOrderLabelArray.entryPrice;
+
 
                 let stopOrder = currentBracketOrder.get('stop');
                 let direction = stopOrder['direction'];
@@ -1471,32 +1923,38 @@ class TradingLogic {
                 let tradeSize = stopOrder['amount'];
 
                 if (direction.indexOf('sell') !== -1) {
-                    // If sell stop market
+                    // If sell stop market move the stop price up to the next 1:1 reward point or fresh demand distal line. Whichever is higher
+                    let nextStop = Math.max(stopPrice, entryPrice) + riskDelta;
+
                     // get freshest demand and move stop price to the distal line (has to be greater than the time entry for the stop
                     let freshDemand = this.getFreshDemandTimeFrame(this.LTF);
                     if (freshDemand) {
                         let freshDemandDistal = this.getDemandDistalLine(freshDemand);
-                        if (stopPrice < freshDemandDistal) {
-                            this.log(`^^^ Updating Sell Stop Market Order to ${freshDemandDistal} ^^^`);
-                            await this.Deribit.editStopOrder(orderId, tradeSize, freshDemandDistal);
-                        }
+                        nextStop = Math.max(nextStop, freshDemandDistal);
                     }
+
+                    if (currentPrice >= nextStop) {
+                        this.log(`^^^ Updating Sell Stop Market Order to ${nextStop} ^^^`);
+                        await this.Deribit.editStopOrder(orderId, tradeSize, nextStop);
+                    }
+
+
                 } else {
-                    // If buy stop market
+                    // If buy stop market move the stop price down to the next 1:1 reward point or fresh demand distal line. Whichever is lower
+                    let nextStop = Math.min(stopPrice, entryPrice) - riskDelta;
+
                     //get freshest supply and move stop price to the distal line (has to be greater than the time entry for the stop
                     let freshSupply = this.getFreshSupplyTimeFrame(this.LTF);
                     if (freshSupply) {
                         let freshSupplyDistal = this.getSupplyDistalLine(freshSupply);
-                        if (stopPrice > freshSupplyDistal) {
-                            this.log(`VVV Updating Buy Stop Market Order to ${freshSupplyDistal} VVV`);
-                            await this.Deribit.editStopOrder(orderId, tradeSize, freshSupplyDistal)
-                        }
+                        nextStop = Math.min(nextStop, freshSupplyDistal);
+                    }
+
+                    if (currentPrice <= nextStop) {
+                        this.log(`VVV Updating Buy Stop Market Order to ${nextStop} VVV`);
+                        await this.Deribit.editStopOrder(orderId, tradeSize, nextStop);
                     }
                 }
-            } else if (currentBracketOrder.has('stop') && !currentBracketOrder.has('target') && !currentBracketOrder.has('entry')) {
-                // Remove lingering trail stops that have no targets and no entries
-                let stopLabel = uid + '|stop';
-                await this.Deribit.cancelByLabel(stopLabel);
             }
         }
         this.log(`Finished Updating Trail Stops`);
@@ -1514,28 +1972,39 @@ class TradingLogic {
         return Math.floor(this.getBOReward(bo) / this.getBORisk(bo));
     }
 
-    async getRiskMultiplier(oeScore = 5) {
+    getLeverage(minDefault = 1, max = 100) {
+        let position = this.Deribit.getPosition();
+        this.log(`Position (from API): ${JSON.stringify(position)}`,);
+        let leverage = (position['leverage']) ? (position['leverage'] * .75) : 1; //  Deribit allows 100x leverage. We are capping at 75% of current leverage allowed
+        leverage = Math.max(1, Math.min(minDefault, leverage));
+        leverage = Math.min(max, leverage);
+        return leverage;
+    }
+
+    getRiskMultiplier(oeScore = 5, minLeverage, maxLeverage) {
         let maxOEScore = 10;
         let oeScorePercentage = oeScore / maxOEScore;
-        let position = await this.Deribit.getPosition();
-        //this.log(`Position: `, position);
-        let leverage = (position['leverage']) ? position['leverage'] : 2; //  Deribit allows 100x leverage ???
-
-        let maxLeverage = leverage * oeScorePercentage;
-        let riskMultiplier = Math.max(this.minRiskMultiplier, Math.floor(maxLeverage * .75));
-        this.log(`Risk Multiplier: ${riskMultiplier}| oeScore: ${oeScore} | oeScorePercent: ${oeScorePercentage} | leverage: ${leverage} | maxLeverage: ${maxLeverage}`);
+        let leverage = this.getLeverage(minLeverage, maxLeverage);
+        let finalMaxLeverage = leverage * oeScorePercentage;
+        let riskMultiplier = Math.max(this.minRiskMultiplier, Math.floor(finalMaxLeverage));
+        this.log(`Risk Multiplier: ${riskMultiplier}| oeScore: ${oeScore} | oeScorePercent: ${oeScorePercentage} | leverage: ${leverage} | maxLeverage: ${finalMaxLeverage}`);
         return riskMultiplier;
 
     }
 
-    setBracketOrder(buysell, stop, entry, target) {
+    createCompleteBracketOrder(buysell, stop, entry, target, calculatedOddEnhancers) {
         let myOrder = Object.create(buysell);
 
         myOrder.stop.price = stop;
         myOrder.entry.price = entry;
         myOrder.target.price = target;
         myOrder.status = this.bracketOrder.BUY.status.pending;
-        myOrder.oddsEnhancer = this.bracketOrder.BUY.oddsEnhancer;
+        // Add Odds Enhancer Info
+        myOrder.oddsEnhancer = calculatedOddEnhancers;
+        //myOrder.oddsEnhancer.freshness = calculatedOddEnhancers.freshness;
+        //myOrder.oddsEnhancer.strength = calculatedOddEnhancers.strength;
+        //myOrder.oddsEnhancer.time = calculatedOddEnhancers.time;
+        //myOrder.oddsEnhancer.profitZone = calculatedOddEnhancers.profitZone;
 
         return myOrder;
     }
@@ -1548,13 +2017,17 @@ class TradingLogic {
         // Maximum Account Risk (in dollars) / (Trade Risk (in ticks) x Tick Value) = Trade Size
         let tradeSize = Math.floor(this.getMaxAccountRiskUSD() / (riskInTicks * this.tickValue));
         let draftTS = isFinite(tradeSize) ? tradeSize : this.contractMultiple;
-        let finalTS = Math.ceil(draftTS / this.contractMultiple) * this.contractMultiple;
-
         //this.log(`Tradesize: ${finalTS} | Max Account Risk \$${getMaxAccountRiskUSD()} | Trade Risk in Ticks: ${riskInTicks} | Tick Value: ${tickValue}`);
-        return finalTS;
+        return Math.ceil(draftTS / this.contractMultiple) * this.contractMultiple;
     }
 
     async handleOrderUpdates(orders) {
+
+        await this.handleOpenOrders();
+
+        //TODO: Do we need to do this (below VVV)
+
+        /*
         for (let index in orders) {
             let order = orders[index];
             let orderLabel = order['label'];
@@ -1563,7 +2036,7 @@ class TradingLogic {
             let orderLabelArray = orderLabel.split('|');
             let orderType = orderLabelArray.pop();
             let uid = orderLabelArray.join('|');
-            let exitTypes = ['stop', 'target'];
+            //let exitTypes = ['stop', 'target'];
             let stop = uid + '|stop';
             let target = uid + '|target';
             let entry = uid + '|entry';
@@ -1582,6 +2055,11 @@ class TradingLogic {
             }
 
              */
+
+        /*
+
+            // TODO: Handle partially filled entries by fixing the stop and target trades size to match
+
 
             // If order type is not entry OR order type is not filled then cancel the other tied (bracket) orders that are in closed order states/statuses
             if (orderType && (orderType.indexOf("entry") === -1 || orderState.indexOf('filled') === -1) && closedOrderStates.includes(orderState)) {
@@ -1619,9 +2097,10 @@ class TradingLogic {
                 }
             }
 
-            */
 
         }
+
+         */
     }
 
 

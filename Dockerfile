@@ -7,4 +7,4 @@ COPY src ./src
 EXPOSE 80
 # For Local Docker with more space and debuging options
 #CMD ["node","--trace-warnings","--expose-gc","--max_old_space_size=4096","./src/app.js"]
-CMD ["node","--max_old_space_size=258","./src/app.js"]
+CMD ["node","--max_old_space_size=1024","./src/app.js"]

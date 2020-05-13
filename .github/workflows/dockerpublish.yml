@@ -14,7 +14,7 @@ on:
   pull_request:
 
 env:
-  # TODO: Change variable to your image's name.
+  # Done: Change variable to your image's name.
   IMAGE_NAME: frostbyte07/btc-trading-app
 
 jobs:

@@ -1,3 +1,7 @@
+![Docker](https://github.com/gitchrisqueen/btc-trading-app/workflows/Docker/badge.svg)
+        ![Node.js CI](https://github.com/gitchrisqueen/btc-trading-app/workflows/Node.js%20CI/badge.svg)
+
+
 # btc-trading-app
 BTC Trading App on Deribit Market
 

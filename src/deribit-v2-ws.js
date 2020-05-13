@@ -47,7 +47,7 @@ class Connection extends EventEmitter {
             return this.scriptName
         }
 
-        var error = new Error()
+        let error = new Error()
             , source
             , lastStackFrameRegex = new RegExp(/.+\/(.*?):\d+(:\d+)*$/)
             , currentStackFrameRegex = new RegExp(/getScriptName \(.+\/(.*):\d+:\d+\)/);
@@ -65,13 +65,12 @@ class Connection extends EventEmitter {
         let minLength = 41;
         let maskedFileName = fileName.padEnd(minLength, '-') + '> ';
 
+        if (variable !== false) {
+            message = message + JSON.stringify(variable);
+        }
         message = chalk.magenta.bold(maskedFileName) + chalk.bgMagenta.hex('#000000').bold(` ${message} `);
         if (this.DEBUG) {
-            if (variable !== false) {
-                console.log(message + JSON.stringify(variable));
-            } else {
-                console.log(message);
-            }
+            console.log(message);
         }
     }
 
@@ -123,10 +122,12 @@ class Connection extends EventEmitter {
                 this.authenticated = false;
                 this.connected = false;
                 clearInterval(this.pingInterval);
-                if(this.reconnectingCount<3){
+                if (this.reconnectingCount < 3) {
                     this.reconnect();
-                }else{
+                } else {
                     this.log(`Cannot properly reconnect to Deribit. Exiting Node and restarting Docker container.`);
+                    this.end();
+                    reject();
                     process.exit(1);
                 }
 
@@ -144,7 +145,7 @@ class Connection extends EventEmitter {
             this.authenticated = false;
             this.connected = false;
             clearInterval(this.pingInterval);
-            this.reconnect();
+            return this.reconnect();
         });
 
         return promise;
@@ -178,8 +179,11 @@ class Connection extends EventEmitter {
     end = async () => {
         if (this.DEBUG)
             this.log(new Date, ' ENDED WS CON');
+        this.subscriptions.forEach(sub => {
+            this.unsubscribe(sub.type, sub.channel);
+        });
         clearInterval(this.pingInterval);
-        this.ws.onclose = undefined
+        this.ws.onclose = undefined;
         this.request('private/logout', {access_token: this.token});
         this.authenticated = false;
         this.connected = false;
@@ -196,13 +200,15 @@ class Connection extends EventEmitter {
         await wait(5000);
         if (this.DEBUG)
             this.log(new Date, ' RECONNECTING...');
-        await this.connect();
+        let p = await this.connect();
         hook();
         this.isReadyHook();
 
         this.subscriptions.forEach(sub => {
             this.subscribe(sub.type, sub.channel);
         });
+
+        return p;
     };
 
     connect = async () => {
@@ -211,7 +217,7 @@ class Connection extends EventEmitter {
         if (this.key) {
             await this.authenticate();
         }
-        // Set the heartbeat - 20 (in seconds)
+        // Set the heartbeat (in seconds)
         await this.request("public/set_heartbeat", {interval: this.heartBeat});
         //.then(async () => {
         //this.on('test_request', this.handleWSMessage);
@@ -224,6 +230,9 @@ class Connection extends EventEmitter {
             await this.connect();
         }
 
+        let today = new Date();
+        let date = today.getFullYear() + '_' + (today.getMonth() + 1) + '_' + today.getDate();
+
         const resp = await this.sendMessage({
             'jsonrpc': '2.0',
             'method': 'public/auth',
@@ -231,7 +240,8 @@ class Connection extends EventEmitter {
             'params': {
                 'grant_type': 'client_credentials',
                 'client_id': this.key,
-                'client_secret': this.secret
+                'client_secret': this.secret,
+                'scope': 'session:tradingapp_docker_nodejs' + date
             }
         });
 
@@ -255,7 +265,7 @@ class Connection extends EventEmitter {
          */
 
         let refreshTime = (resp.result.expires_in - (10 * 60)) * 1000; // (ExpireTime (seconds) - 10 Minutes (in seconds)) converted back to Milliseconds
-        let today = Date.now();
+        //let today = Date.now();
         let expireDateMilli = today + refreshTime;
         let expireDate = new Date(expireDateMilli);
         this.log(`Refresh Token Expires On: ${expireDate.toString()}`);
@@ -318,6 +328,7 @@ class Connection extends EventEmitter {
         }
 
         if (payload.method === 'subscription') {
+            clearInterval(this.pingInterval);
             return this.emit(payload.params.channel, payload.params.data);
         }
 
@@ -397,6 +408,7 @@ class Connection extends EventEmitter {
            }, 5 * 1000);
        }
     */
+        //clearInterval(this.pingInterval);
         return p;
     };
 
@@ -424,8 +436,30 @@ class Connection extends EventEmitter {
             'id': this.nextId()
         };
 
+        //this.log(`Sending Message: `, message);
         return this.sendMessage(message);
     };
+
+    unsubscribe = (type, channel) => {
+
+        if (!this.connected) {
+            throw new Error('Not connected.');
+        } else if (type === 'private' && !this.authenticated) {
+            throw new Error('Not authenticated.');
+        }
+
+        const message = {
+            'jsonrpc': '2.0',
+            'method': `${type}/unsubscribe`,
+            'params': {
+                'channels': [channel]
+            },
+            'id': this.nextId()
+        };
+
+        return this.sendMessage(message);
+    };
+
 
     subscribe = (type, channel) => {
 
@@ -447,16 +481,16 @@ class Connection extends EventEmitter {
         };
 
         return this.sendMessage(message);
-    };
+    }
 
     async cancel_order_by_label(label) {
         return await this.request(`private/cancel_by_label`,
             {
                 'label': label
             })
-            .catch(e => {
+            .catch((e) => {
                 this.log(`Could not return after cancel_order_by_label() Error : `, e);
-                throw new Error(`Could not return after cancel_order_by_label()`);
+                //throw new Error(`Could not return after cancel_order_by_label()`);
             });
     }
 
@@ -466,7 +500,7 @@ class Connection extends EventEmitter {
                 'instrument_name': instrument,
                 'type': type
             })
-            .catch(e => {
+            .catch((e) => {
                 this.log(`Could not return after close_position() Error: `, e);
                 throw new Error(`Could not return after close_position()`);
             });
@@ -477,27 +511,9 @@ class Connection extends EventEmitter {
             {
                 'instrument_name': instrument
             })
-            .catch(error => {
-                this.log(`Could not return after editOrder() : `, e);
-                throw new Error(`Could not return after editOrder()`);
-            });
-    }
-
-    async editOrder(orderId, orderSizeUSD, price = false, stopPrice = false) {
-        let orderEditOptions = {
-            "order_id": orderId,
-            "amount": orderSizeUSD,
-        };
-        if (price) {
-            orderEditOptions['price'] = price;
-        }
-        if (stopPrice) {
-            orderEditOptions['price'] = stopPrice;
-        }
-        return await this.request(`private/edit`, orderEditOptions)
-            .catch(e => {
-                this.log(`Could not return after editOrder() : `, e);
-                throw new Error(`Could not return after editOrder()`);
+            .catch((error) => {
+                this.log(`Could not return after getPosition() : `, error);
+                throw new Error(`Could not return after getPosition()`);
             });
     }
 
@@ -508,7 +524,7 @@ class Connection extends EventEmitter {
             'end_timestamp': end,
             'resolution': resolution
         })
-            .catch(e => {
+            .catch((e) => {
                 this.log(`Could not return after get_tradingview_chart_data() Error: `, e)
                 throw new Error(`Could not return after get_tradingview_chart_data()`);
             });
@@ -516,7 +532,7 @@ class Connection extends EventEmitter {
 
     async buy(options) {
         return await this.request('private/buy', options)
-            .catch(e => {
+            .catch((e) => {
                 this.log(`Could not return after buy() Error: `, e);
                 throw new Error(`Could not return after buy()`);
             });
@@ -524,7 +540,7 @@ class Connection extends EventEmitter {
 
     async sell(options) {
         return await this.request('private/sell', options)
-            .catch(e => {
+            .catch((e) => {
                 this.log(`Could not return after sell() Error: `, e);
                 throw new Error(`Could not return after sell()`);
             });
@@ -536,8 +552,8 @@ class Connection extends EventEmitter {
             'instrument_name': instrument,
             'type': type
         })
-            .catch(error => {
-                this.log(`Could not return after get_open_orders_by_instrument() Error: `, e);
+            .catch((error) => {
+                this.log(`Could not return after get_open_orders_by_instrument() Error: `, error);
                 throw new Error(`Could not return after get_open_orders_by_instrument()`);
             });
     }
@@ -554,30 +570,27 @@ class Connection extends EventEmitter {
             });
     }
 
-    async edit(orderId, orderSizeUSD, price = false, stopPrice = false) {
-        let options = {
-            'order_id': orderId,
-            'amount': orderSizeUSD
+    async editOrder(orderId, orderSizeUSD, price = false, stopPrice = false) {
+        let orderEditOptions = {
+            "order_id": orderId,
+            "amount": orderSizeUSD,
         };
-
         if (price) {
-            options['price'] = price;
+            orderEditOptions['price'] = price;
         }
-
         if (stopPrice) {
-            options['stop_price'] = stopPrice;
+            orderEditOptions['stop_price'] = stopPrice;
         }
-
-        return await this.request('private/edit', options)
-            .catch(e => {
-                this.log(`Could not return after edit(): `, e);
-                throw new Error(`Could not return after edit()`);
+        return await this.request(`private/edit`, orderEditOptions)
+            .catch((e) => {
+                this.log(`Could not return after editOrder() : `, e);
+                throw new Error(`Could not return after editOrder()`);
             });
     }
 
     async enable_cancel_on_disconnect() {
         return await this.request('private/enable_cancel_on_disconnect')
-            .catch(e => {
+            .catch((e) => {
                 this.log(`Could not return after enable_cancel_on_disconnect() Error: `, e);
                 throw new Error(`Could not return after enable_cancel_on_disconnect()`);
             });
@@ -585,7 +598,7 @@ class Connection extends EventEmitter {
 
     async disable_cancel_on_disconnect() {
         return await this.request('private/disable_cancel_on_disconnect')
-            .catch(e => {
+            .catch((e) => {
                 this.log(`Could not return after disable_cancel_on_disconnect() Error: `, e);
                 throw new Error(`Could not return after disable_cancel_on_disconnect()`);
             });
@@ -596,9 +609,41 @@ class Connection extends EventEmitter {
             {
                 'currency': currency,
                 'extended': extended
-            }).catch(e => {
+            }).catch((e) => {
             this.log(`Could not return after get_account_summary() Error: `, e);
             throw new Error(`Could not return after get_account_summary()`);
+        });
+    }
+
+    async get_instruments(currency, kind, expired) {
+        return await this.request('public/get_instruments',
+            {
+                'currency': currency,
+                'kind': kind,
+                'expired': expired
+            }).catch((e) => {
+            this.log(`Could not return after get_instruments() Error: `, e.message);
+            throw new Error(`Could not return after get_instruments()`);
+        });
+    }
+
+    async get_book_summary_by_instrument(instrument) {
+        return await this.request('public/get_book_summary_by_instrument',
+            {
+                'instrument_name': instrument
+            }).catch((e) => {
+            this.log(`Could not return after get_book_summary_by_instrument() Error: `, e);
+            throw new Error(`Could not return after get_book_summary_by_instrument()`);
+        });
+    }
+
+    async get_ticker(instrument){
+        return await this.request('public/ticker',
+            {
+                'instrument_name': instrument
+            }).catch((e) => {
+            this.log(`Could not return after get_ticker() Error: `, e);
+            throw new Error(`Could not return after get_ticker()`);
         });
     }
 
