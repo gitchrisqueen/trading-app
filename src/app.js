@@ -12,51 +12,8 @@ let incomeLevel = (process.env.INCOMELEVEL) ? process.env.INCOMELEVEL : tradingL
 //console.log(`Income Level: ${process.env.INCOMELEVEL}`);
 //process.exit(1);
 
-
 tradingLogic.setIncomeLevel(incomeLevel);
 (async () => {
     tradingLogic.log(`Starting ${tradingLogic.getIncomeLevel()} Trading`);
     await tradingLogic.init();
 })();
-
-
-/*
-tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().intraday);
-(async () => {
-    tradingLogic.log(`Starting ${tradingLogic.getIncomeLevel()} Trading`);
-    await tradingLogic.init();
-})();
-
-
-tradingLogic = new TradingLogic();
-tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().hourly);
-(async () => {
-    tradingLogic.log(`Starting ${tradingLogic.getIncomeLevel()} Trading`);
-    await tradingLogic.init();
-})();
-
-
-tradingLogic = new TradingLogic();
-tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().daily);
-(async () => {
-    tradingLogic.log(`Starting ${tradingLogic.getIncomeLevel()} Trading`);
-    await tradingLogic.init();
-})();
-
-/*
-
-tradingLogic = new TradingLogic();
-tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().weekly);
-(async () => {
-    tradingLogic.log(`Starting ${tradingLogic.getIncomeLevel()} Trading`);
-    await tradingLogic.init();
-})();
-
-tradingLogic = new TradingLogic();
-tradingLogic.setIncomeLevel(tradingLogic.getIncomeLevels().monthly);
-(async () => {
-     tradingLogic.log(`Starting ${tradingLogic.getIncomeLevel()} Trading`);
-    await tradingLogic.init();
-})();
-
- */

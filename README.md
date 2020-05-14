@@ -101,10 +101,7 @@ You have 12 H1 headings. You may want to use the "H1 -> H2" option to demote all
     2. Don’t want to take anything less than a 3:1 ratio (as a beginner)
 15.
 
-<p id="gdcalert1" ><span style="color: red; font-weight: bold">>>>>>  gd2md-html alert: inline image link here (to images/Trading-Documentation0.png). Store image on your image server and adjust path/filename if necessary. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert2">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>>> </span></p>
-
-
-![alt_text](images/Trading-Documentation0.png "image_tooltip")
+![alt_text](https://keep.google.com/u/0/media/v2/19xao1vm0TdGY3mohCCxOQCj4c3mUFHpUiaa4JKb-nEHAckRQJd_wb9zpcCaXjA/1P6oAcF0Kpimk5D098i3foeBwzkDBElOuUFLo2VILnK3cUHYT7cBBEUWFPG3R-g?accept=image/gif,image/jpeg,image/jpg,image/png,image/webp,audio/aac&sz=728 "image_tooltip")
 
 16.
 

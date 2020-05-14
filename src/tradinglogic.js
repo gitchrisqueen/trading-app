@@ -8,18 +8,6 @@ const dBit = require('./deribit.js');
 // noinspection DuplicatedCode
 class TradingLogic {
 
-    /*
-
-    currentCash = 0;
-    totalPL = 0;
-    totalPLUSD = 0;
-    potentialProfitLossUSD = 0;
-    realizedProfitLossUSD = 0;
-
-    myPosition = false;
-    orders = new Map();
-     */
-
     constructor() {
         this.DEBUG = true;
         this.testRan = false;
@@ -415,15 +403,18 @@ class TradingLogic {
         }
     }
 
-    zoneProperties(zone, timeframe){
+    getZonePropertiesAdvanced(zone, timeframe) {
+        // TODO: Get properties from helper than add freshness to it
+
+
         let currentPrice = this.getCurrentPrice(timeframe);
         let min = this.getMinBaseBody(zone);
         let max = this.getMaxBaseBody(zone);
-        let d1 = Math.abs(currentPrice-min);
-        let d2 = Math.abs(currentPrice-max);
+        let d1 = Math.abs(currentPrice - min);
+        let d2 = Math.abs(currentPrice - max);
 
-        let prop =  (d1<d2)? {proximal:min, distal: max}:  {proximal:max, distal: min};
-        prop['isFresh'] = this.isFreshZone(zone,timeframe);
+        let prop = (d1 < d2) ? {proximal: min, distal: max} : {proximal: max, distal: min};
+        prop['isFresh'] = this.isFreshZone(zone, timeframe);
         prop['isSupply'] = prop.proximal > currentPrice;
         prop['isDemand'] = prop.proximal < currentPrice;
         return prop;
@@ -436,14 +427,6 @@ class TradingLogic {
             freshsupply: new Map(),
             freshdemand: new Map()
         };
-    }
-
-    getZoneTimeStampMilli(zone) {
-        return (zone[0] && zone[0].time) ? zone[0].time : 1;
-    }
-
-    getZoneTimeStamp(zone){
-        return this.getZoneTimeStampMilli()/1000;
     }
 
     async trackAllOpenOrders() {
@@ -622,15 +605,6 @@ class TradingLogic {
         return new Map([...bars.entries()].sort().filter(([k, v]) => (from <= v.time && v.time <= to)));
     }
 
-    div_mod(a, b) {
-        a = parseInt(a);
-        b = parseInt(b);
-        if (b <= 0)
-            throw new Error("b cannot be zero. Undefined.");
-
-        return [Math.floor(a / b), a % b];
-    }
-
     async getAPIBars(timeframe, from = false, to = false) {
 
         this.log(`Getting API Bars for Timeframe: ${timeframe}`);
@@ -710,7 +684,6 @@ class TradingLogic {
         this.barMap.delete(firstBar.time);
     }
 
-
     addSubscribedBarToMap(timeframe, data) {
         let bar;
         if (data.status !== 'no_data') {
@@ -730,8 +703,6 @@ class TradingLogic {
             return newBarAdded;
         }
     }
-
-
 
     getZoneTouchCount(zone, timeframe) {
         let lastZoneBar = zone[zone.length - 1];
@@ -775,51 +746,6 @@ class TradingLogic {
             isFresh = false;
         }
         return isFresh;
-    }
-
-    setScriptName() {
-        return this.scriptName;
-    }
-
-    getScriptName() {
-        if (this.scriptName) {
-            return this.scriptName
-        }
-
-        let error = new Error()
-            , source
-            , lastStackFrameRegex = new RegExp(/.+\/(.*?):\d+(:\d+)*$/)
-            , currentStackFrameRegex = new RegExp(/getScriptName \(.+\/(.*):\d+:\d+\)/);
-
-        if ((source = lastStackFrameRegex.exec(error.stack.trim())) && source[1] != "")
-            return source[1];
-        else if ((source = currentStackFrameRegex.exec(error.stack.trim())))
-            return source[1];
-        else if (error.fileName != undefined)
-            return error.fileName;
-    }
-
-    // noinspection DuplicatedCode
-    log(message, variable = false) {
-        let fileName = `[${this.getScriptName()}] (${this.getIncomeLevel()})`;
-        let minLength = 33;
-        let maskedFileName = fileName.padEnd(minLength, '-') + '> ';
-
-        if (variable !== false) {
-            message = message + JSON.stringify(variable);
-        }
-        message = chalk.yellow.bold(maskedFileName) + chalk.bgYellow.hex('#000000').bold(` ${message} `);
-        if (this.DEBUG) {
-            console.log(message);
-        }
-    }
-
-    forceGC() {
-        if (global.gc) {
-            global.gc();
-        } else {
-            this.log('No GC hook! Start your program as `node --expose-gc ' + this.getScriptName() + '`.');
-        }
     }
 
     determineCurve() {
@@ -898,7 +824,6 @@ class TradingLogic {
         return (supply && supply.length >= this.baseMinSize) ? supply : false;
     }
 
-
     // noinspection DuplicatedCode
     getFreshSupplyTimeFrame(timeframe) {
         if (!this.zoneMap.has(timeframe)) {
@@ -971,10 +896,6 @@ class TradingLogic {
         }
         return supply;
 
-    }
-
-    daysInMonth(month, year) {
-        return new Date(year, month, 0).getDate();
     }
 
     getInstrumentByTimeFrame(timeframe) {
@@ -1603,21 +1524,6 @@ class TradingLogic {
         });
     }
 
-
-    btw(search, end1, end2, inclusive = true) {
-        search = parseFloat(search);
-        end1 = parseFloat(end1);
-        end2 = parseFloat(end2);
-        let trueMin = Math.min(end1, end2);
-        let trueMax = Math.max(end1, end2);
-
-        if (inclusive) {
-            return (trueMin <= search && search <= trueMax);
-        } else {
-            return (trueMin < search && search < trueMax);
-        }
-    }
-
     getMaxAccountRiskUSD(percent = .02) {
         return Math.max(this.getAccountTotalUSD() * percent, 0);
     }
@@ -1766,10 +1672,6 @@ class TradingLogic {
             }
         }
         this.log(`Finished Handling Missed Entries`);
-    }
-
-    myXOR(a, b) {
-        return (a || b) && !(a && b);
     }
 
     async removeBrokenBracketOrders(bracketOrderMap) {
@@ -2037,10 +1939,6 @@ class TradingLogic {
 
          */
     }
-
-
 }
 
-
-module
-    .exports = TradingLogic;
+module.exports = TradingLogic;

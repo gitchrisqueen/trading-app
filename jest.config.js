@@ -22,7 +22,7 @@ module.exports = {
    collectCoverage: true,
 
   // An array of glob patterns indicating a set of files for which coverage information should be collected
-   collectCoverageFrom: ["**/src/*.{js,jsx}", "!**/node_modules/**", "!**/vendor/**"],
+   collectCoverageFrom: ["**/src/*.{js,jsx}", "!**/node_modules/**", "!**/vendor/**", "!**/src/*old*", "!**/src/*copy*"],
 
   // The directory where Jest should output its coverage files
   coverageDirectory: "./coverage",
@@ -186,7 +186,7 @@ module.exports = {
   // unmockedModulePathPatterns: undefined,
 
   // Indicates whether each individual test should be reported during the run
-  // verbose: undefined,
+  verbose: true,
 
   // An array of regexp patterns that are matched against all source file paths before re-running tests in watch mode
   // watchPathIgnorePatterns: [],
