@@ -2,8 +2,6 @@
         ![Node.js CI](https://github.com/gitchrisqueen/btc-trading-app/workflows/Node.js%20CI/badge.svg)
         [![codecov](https://codecov.io/gh/gitchrisqueen/btc-trading-app/branch/master/graph/badge.svg?token=LWZJEUV38A)](https://codecov.io/gh/gitchrisqueen/btc-trading-app)
 
-        ![CodeCov](https://codecov.io/gh/gitchrisqueen/btc-trading-app/commit/183bde267c71179ccab11eb3b18f2b620f9b3755/graphs/tree.svg?token=LWZJEUV38A)
-
 # btc-trading-app
 BTC Trading App on Deribit Market
 
