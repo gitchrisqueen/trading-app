@@ -1,0 +1,121 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node, Build and push the docker image, and push the code coverage resutls from testing to codecov
+
+name: TradingApp Workflow CI
+
+on:
+  push:
+    # Publish `master` as Docker `latest` image.
+    branches: [ master ]
+      # Publish `v1.2.3` tags as releases.
+      tags:
+        - v*
+    # Run tests for any PRs.
+    pull_request:
+
+env:
+  # Docker image name.
+  IMAGE_NAME: frostbyte07/btc-trading-app
+
+jobs:
+  testnode:
+    name: Test Code in Node.js Using Jest
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [10.x, 12.x, 14.x]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache node modules
+        uses: actions/cache@v1
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+      - name: Use Node.js ${{ matrix.node-version }} Install, Build, and Test
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: |
+          npm ci
+          npm run build --if-present
+          npm test
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-report-${{ matrix.node-version }}
+          path: coverage/clover.xml
+  cover:
+    name: Push Coverage Results to Codecove
+    needs: testnode
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest]
+    env:
+      OS: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v1
+          with:
+            name: code-coverage-report-14.x
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: coverage/clover.xml
+          flags: unittests
+          env_vars: OS
+          name: codecov-umbrella
+          fail_ci_if_error: true
+  testdocker:
+    name: Build and Push the Docker Image
+    needs: testnode
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Docker tests
+        run: |
+          if [ -f docker-compose.test.yml ]; then
+            docker-compose --file docker-compose.test.yml build
+            docker-compose --file docker-compose.test.yml run sut
+          else
+            docker build . --file Dockerfile
+          fi
+    # Push image to GitHub Packages.
+    # See also https://docs.docker.com/docker-hub/builds/
+    push:
+      # Ensure test job passes before pushing image.
+      needs: testdocker
+      runs-on: ubuntu-latest
+      if: github.event_name == 'push'
+      steps:
+        - uses: actions/checkout@v2
+        - name: Build Docker image
+          run: docker build . --file Dockerfile --tag $IMAGE_NAME
+        - name: Log into Docker registry
+          run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u frostbyte07 --password-stdin
+        - name: Push Docker image
+          run: |
+            IMAGE_ID=$IMAGE_NAME
+            # Change all uppercase to lowercase
+            IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+            # Strip git ref prefix from version
+            VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+            # Strip "v" prefix from tag name
+            [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+
+            # Use Docker `latest` tag convention
+            [ "$VERSION" == "master" ] && VERSION=latest
+
+            echo IMAGE_ID=$IMAGE_ID
+            echo VERSION=$VERSION
+
+            docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+            docker push $IMAGE_ID:$VERSION
