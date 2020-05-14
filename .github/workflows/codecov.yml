@@ -1,0 +1,25 @@
+name: Codecov
+on:
+  push:
+    branches: [ master ]
+    pull_request:
+      branches: [ master ]
+jobs:
+  run:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest]
+    env:
+      OS: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage/clover.xml
+          flags: unittests
+          env_vars: OS
+          name: codecov-umbrella
+          fail_ci_if_error: true
