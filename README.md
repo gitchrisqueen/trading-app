@@ -1,5 +1,4 @@
-![Docker](https://github.com/gitchrisqueen/btc-trading-app/workflows/Docker/badge.svg)
-        ![Node.js CI](https://github.com/gitchrisqueen/btc-trading-app/workflows/Node.js%20CI/badge.svg)
+![TradingApp Workflow CI](https://github.com/gitchrisqueen/btc-trading-app/workflows/TradingApp%20Workflow%20CI/badge.svg)
         [![codecov](https://codecov.io/gh/gitchrisqueen/btc-trading-app/branch/master/graph/badge.svg?token=LWZJEUV38A)](https://codecov.io/gh/gitchrisqueen/btc-trading-app)
 
 # btc-trading-app
