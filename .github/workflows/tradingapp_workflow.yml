@@ -45,6 +45,7 @@ jobs:
           npm run build --if-present
           npm test
       - name: Archive code coverage results
+        if: always()
         uses: actions/upload-artifact@v1
         with:
           name: code-coverage-report-${{ matrix.node-version }}
