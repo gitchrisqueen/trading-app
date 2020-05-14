@@ -95,7 +95,7 @@ jobs:
     needs: [testdocker, testnode]
     name: Push Docker Image
     runs-on: ubuntu-latest
-    if: (github.event_name == 'push' && jobs.testnode.status == 'success')
+    if: (github.event_name == 'push' && testnode.status == 'success')
     steps:
       - uses: actions/checkout@v2
       - name: Build Docker image
