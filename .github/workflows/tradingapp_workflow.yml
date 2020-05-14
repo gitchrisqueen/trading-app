@@ -92,10 +92,10 @@ jobs:
   # See also https://docs.docker.com/docker-hub/builds/
   pushdocker:
     # Ensure test job passes before pushing image.
-    needs: testdocker
+    needs: [testdocker, testnode]
     name: Push Docker Image
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && jobs.testnode.status == 'success'
+    if: (github.event_name == 'push' && jobs.testnode.status == 'success')
     steps:
       - uses: actions/checkout@v2
       - name: Build Docker image
