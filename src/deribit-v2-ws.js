@@ -4,7 +4,7 @@
 
 const chalk = require("chalk");
 const WebSocket = require('ws');
-let bluebird = require('bluebird');
+//let bluebird = require('bluebird');
 const EventEmitter = require('events');
 
 const wait = n => new Promise(r => setTimeout(r, n));

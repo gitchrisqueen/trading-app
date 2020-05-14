@@ -152,52 +152,13 @@ class Deribit {
         await this.subscribeTicker(instrument);
     }
 
-
-    setScriptName() {
-        return this.scriptName;
-    }
-
-    getScriptName() {
-        if (this.scriptName) {
-            return this.scriptName
-        }
-
-        let error = new Error()
-            , source
-            , lastStackFrameRegex = new RegExp(/.+\/(.*?):\d+(:\d+)*$/)
-            , currentStackFrameRegex = new RegExp(/getScriptName \(.+\/(.*):\d+:\d+\)/);
-
-        if ((source = lastStackFrameRegex.exec(error.stack.trim())) && source[1] != "")
-            return source[1];
-        else if ((source = currentStackFrameRegex.exec(error.stack.trim())))
-            return source[1];
-        else if (error.fileName != undefined)
-            return error.fileName;
-    }
-
-    log(message, variable = false) {
-        let fileName = `[${this.getScriptName()}] `;
-        let minLength = 37;
-        let maskedFileName = fileName.padEnd(minLength, '-') + '> ';
-
-        if (variable !== false) {
-            message = message + JSON.stringify(variable);
-        }
-        message = chalk.green.bold(maskedFileName) + chalk.bgGreen.hex('#000000').bold(` ${message} `);
-        if (this.DEBUG) {
-            console.log(message);
-        }
-    }
-
     isLoggedIn() {
         return this.deribitApi.authenticated;
     }
 
-
     getPortfolioEquityBTC() {
         return this.portfolio.equity;
     }
-
 
     getPortfolioTotalPLBTC() {
         return this.portfolio.total_pl;

@@ -2,6 +2,8 @@
  * Copyright (c) 2020. Christopher Queen Consulting LLC (http://www.ChristopherQueenConsulting.com/)
  */
 
+const chalk = require("chalk");
+
 class Utils {
 
     constructor() {
@@ -43,12 +45,12 @@ class Utils {
         if (global.gc) {
             global.gc();
         } else {
-            this.log('No GC hook! Start your program as `node --expose-gc ' + this.getScriptName() + '`.');
+            this.log('No GC hook! Start your program as `node --expose-gc`');
         }
     }
 
-    setScriptName() {
-        return this.scriptName;
+    setScriptName(name) {
+        this.scriptName = name;
     }
 
     getScriptName() {
@@ -59,19 +61,22 @@ class Utils {
         let error = new Error()
             , source
             , lastStackFrameRegex = new RegExp(/.+\/(.*?):\d+(:\d+)*$/)
+            , parentStackFrameRegex = (/ \(.+\/(.*):\d+:\d+\)/g)
             , currentStackFrameRegex = new RegExp(/getScriptName \(.+\/(.*):\d+:\d+\)/);
 
-        if ((source = lastStackFrameRegex.exec(error.stack.trim())) && source[1] != "")
+        if ((source = lastStackFrameRegex.exec(error.stack.trim())) && source[1] != "") {
             return source[1];
-        else if ((source = currentStackFrameRegex.exec(error.stack.trim())))
+        } else if ((source =  [...error.stack.trim().matchAll(parentStackFrameRegex)]) && source[1] && source[1][1] != "") {
+            return source[1][1];
+        } else if ((source = currentStackFrameRegex.exec(error.stack.trim())) && source[1] != "") {
             return source[1];
-        else if (error.fileName != undefined)
+        } else if (error.fileName != undefined)
             return error.fileName;
     }
 
     // noinspection DuplicatedCode
-    log(message, variable = false) {
-        let fileName = `[${this.getScriptName()}] (${this.getIncomeLevel()})`;
+    log(message, variable = false, incomeLevel = 'Daily') {
+        let fileName = `[${this.getScriptName()}] (${incomeLevel})`;
         let minLength = 33;
         let maskedFileName = fileName.padEnd(minLength, '-') + '> ';
 

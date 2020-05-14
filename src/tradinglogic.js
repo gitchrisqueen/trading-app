@@ -2,7 +2,6 @@
 * Copyright (c) 2020. Christopher Queen Consulting LLC (http://www.ChristopherQueenConsulting.com/)
 */
 
-const chalk = require("chalk");
 const dBit = require('./deribit.js');
 
 // noinspection DuplicatedCode

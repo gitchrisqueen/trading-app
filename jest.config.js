@@ -33,12 +33,12 @@ module.exports = {
    ],
 
   // A list of reporter names that Jest uses when writing coverage reports
-  // coverageReporters: [
-  //   "json",
-  //   "text",
-  //   "lcov",
-  //   "clover"
-  // ],
+  coverageReporters: [
+     //"json",
+     "text",
+     //"lcov",
+     "clover"
+   ],
 
   // An object that configures minimum threshold enforcement for coverage results
   coverageThreshold: {
@@ -47,6 +47,9 @@ module.exports = {
           "functions": 80,
           "lines": 80,
           "statements": 80
+      },
+      "**/src/utils.js":{
+          "branches": 50
       }
   },
 
@@ -120,7 +123,7 @@ module.exports = {
   // restoreMocks: false,
 
   // The root directory that Jest should scan for tests and modules within
-  // rootDir: "./test",
+  // rootDir: "./",
 
   // A list of paths to directories that Jest should use to search for files in
   // roots: [

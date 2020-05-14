@@ -68,11 +68,16 @@ class ChartHelper {
     }
 
     getZoneTimeStampMilli(zone) {
-        return (zone[0] && zone[0].time) ? zone[0].time : 1;
+        // Return earliest zone time
+        return parseFloat(zone.reduce((min, bar) => Math.min(bar.time, min), zone[0].time));
     }
 
-    getZoneTimeStamp(zone){
-        return this.getZoneTimeStampMilli()/1000;
+    getZoneTimeStampSeconds(zone){
+        return parseInt(this.getZoneTimeStampMilli(zone)/1000);
+    }
+
+    getZoneTimeStampMinutes(zone){
+        return parseInt(this.getZoneTimeStampSeconds(zone)/60);
     }
 
 

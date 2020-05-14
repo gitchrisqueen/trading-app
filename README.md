@@ -1,4 +1,4 @@
-![TradingApp Workflow CI](https://github.com/gitchrisqueen/btc-trading-app/workflows/TradingApp%20Workflow%20CI/badge.svg)
+[![TradingApp Workflow CI](https://github.com/gitchrisqueen/btc-trading-app/workflows/TradingApp%20Workflow%20CI/badge.svg)](https://github.com/gitchrisqueen/btc-trading-app/actions?query=workflow%3A%22TradingApp+Workflow+CI%22)
  [![codecov](https://codecov.io/gh/gitchrisqueen/btc-trading-app/branch/master/graph/badge.svg?token=LWZJEUV38A)](https://codecov.io/gh/gitchrisqueen/btc-trading-app)
 
 # btc-trading-app
@@ -99,14 +99,15 @@ You have 12 H1 headings. You may want to use the "H1 -> H2" option to demote all
 13. Short Position =  a position that is sold now with the intent to buy later at a lower price. Futures & Forex do not have “shorting” restrictions.
 14. Reward-to-Risk Ratio = 2.00/.50 = 4. This is a 4:1 PR or a “4R” trade.
     2. Don’t want to take anything less than a 3:1 ratio (as a beginner)
-15.![Terminology](https://keep.google.com/u/0/media/v2/19xao1vm0TdGY3mohCCxOQCj4c3mUFHpUiaa4JKb-nEHAckRQJd_wb9zpcCaXjA/1P6oAcF0Kpimk5D098i3foeBwzkDBElOuUFLo2VILnK3cUHYT7cBBEUWFPG3R-g?accept=image/gif,image/jpeg,image/jpg,image/png,image/webp,audio/aac&sz=728)
+
+15.![Terminology]("https://keep.google.com/u/0/media/v2/19xao1vm0TdGY3mohCCxOQCj4c3mUFHpUiaa4JKb-nEHAckRQJd_wb9zpcCaXjA/1P6oAcF0Kpimk5D098i3foeBwzkDBElOuUFLo2VILnK3cUHYT7cBBEUWFPG3R-g?accept=image/gif,image/jpeg,image/jpg,image/png,image/webp,audio/aac&sz=728")
 
 16.
 
 <p id="gdcalert2" ><span style="color: red; font-weight: bold">>>>>>  gd2md-html alert: inline image link here (to images/Trading-Documentation1.png). Store image on your image server and adjust path/filename if necessary. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert3">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>>> </span></p>
 
 
-![alt_text](images/Trading-Documentation1.png "image_tooltip")
+![Terminology 2]("https://keep.google.com/u/0/media/v2/1tEGdVTeIOKoe58BP-RYhPtrAIz-HpvjiNS3b1rRU6L861XAmR2-1kTJkhVcP1A/10vtrWcjCXSGnYCHZ8rOXjGcapVdULAx301rB1ULWAGW3hWCsNOKz_VtRx5eegg?accept=image/gif,image/jpeg,image/jpg,image/png,image/webp,audio/aac&sz=738")
 
 17.
 

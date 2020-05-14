@@ -80,7 +80,7 @@ const supplyBar = boringBarArray2.reduce(function (map, obj) {
 const supply = [supplyBar, supplyBar, supplyBar];
 
 
-const zone = [bar1, bar2, bar3];
+const zone = [bar1, bar1, bar3];
 
 
 test('getMinBaseLow(' + JSON.stringify(zone) + ') expects 1', () => {
@@ -156,6 +156,24 @@ test('isDemand(' + JSON.stringify([supply, demand]) + ') expects false,true', ()
     expect(ch.isDemand(supply, currentPrice)).toBe(false);
     expect(ch.isDemand(demand, currentPrice)).toBe(true);
 });
+
+test('getZoneTimeStampMilli(' + JSON.stringify(zone) + ') expects '+time, () => {
+    expect(ch.getZoneTimeStampMilli(zone)).toBe(time);
+    expect(ch.getZoneTimeStampMilli(zone)).toBe(zone[0].time);
+});
+
+test('getZoneTimeStampSeconds(' + JSON.stringify(zone) + ') expects '+parseInt(time/1000), () => {
+    expect(ch.getZoneTimeStampSeconds(zone)).toBe(parseInt(time/1000));
+    expect(ch.getZoneTimeStampSeconds(zone)).toBe(parseInt(bar1.time/1000));
+});
+
+test('getZoneTimeStampMinutes(' + JSON.stringify(zone) + ') expects '+parseInt(time/(1000*60)), () => {
+    expect(ch.getZoneTimeStampMinutes(zone)).toBe(parseInt(time/(1000*60)));
+    expect(ch.getZoneTimeStampMinutes(zone)).toBe(parseInt(bar1.time/(1000*60)));
+});
+
+
+
 
 
 
