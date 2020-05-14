@@ -61,8 +61,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v1
-          with:
-            name: code-coverage-report-14.x
+        with:
+          name: code-coverage-report-14.x
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
