@@ -4,7 +4,6 @@
 
 const TradingLogic = require('./tradinglogic.js');
 
-
 let tradingLogic = new TradingLogic();
 
 let incomeLevel = (process.env.INCOMELEVEL) ? process.env.INCOMELEVEL : tradingLogic.getIncomeLevels().daily;

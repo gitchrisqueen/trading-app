@@ -22,7 +22,7 @@ module.exports = {
    collectCoverage: true,
 
   // An array of glob patterns indicating a set of files for which coverage information should be collected
-   collectCoverageFrom: ["**/src/*.{js,jsx}", "!**/node_modules/**", "!**/vendor/**", "!**/src/*old*", "!**/src/*copy*"],
+   collectCoverageFrom: ["**/src/*.{js,jsx}", "!**/node_modules/**", "!**/vendor/**", "!**/src/*old*", "!**/src/*copy*", "!**/src/app.js"],
 
   // The directory where Jest should output its coverage files
   coverageDirectory: "./coverage",
@@ -50,7 +50,13 @@ module.exports = {
       },
       "**/src/utils.js":{
           "branches": 50
-      }
+      },
+      //"**/src/app.js":{
+        //  "branches": 0,
+        //  "functions": 0,
+        //  "lines": 0,
+        //  "statements": 0
+      //}
   },
 
   // A path to a custom dependency extractor

@@ -51,7 +51,7 @@ jobs:
           name: code-coverage-report-${{ matrix.node-version }}
           path: coverage/clover.xml
   cover:
-    name: Push Coverage Results to Codecove
+    name: Push Coverage Results to Codecov
     needs: testnode
     if: always()
     runs-on: ${{ matrix.os }}

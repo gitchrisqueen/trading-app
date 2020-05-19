@@ -4,8 +4,10 @@
 
 let bluebird = require('bluebird');
 const chalk = require("chalk");
+const utils = require('./utils');
+
 //Deribit API
-const DBV2WS = require('./deribit-v2-ws.js');
+const DBV2WS = require('deribit-v2-ws-gitchrisqueen');
 
 process.on("unhandledRejection", function (reason, promise) {
     /* You might start here by adding code to examine the
@@ -27,9 +29,7 @@ process.on("unhandledRejection", function (reason, promise) {
 class Deribit {
 
     constructor() {
-        this.scriptName = '';
         this.DEBUG = true;
-        this.mySymbol = 'BTC-PERPETUAL';
 
         this.defaultPosition = {
             'leverage': 1,
@@ -84,10 +84,10 @@ class Deribit {
         const debug = true;
 
         if (key && secret && domain) {
-            this.log('Connecting to API');
+            utils.log('Connecting to API');
             this.deribitApi = new DBV2WS({key, secret, domain, debug});
         } else {
-            this.log(`Cannot connect to Deribit. Missing Credentials: key=${key} | secret=${secret} | domain=${domain}`);
+            utils.log(`Cannot connect to Deribit. Missing Credentials: key=${key} | secret=${secret} | domain=${domain}`);
             process.exit(1);
         }
 
@@ -99,32 +99,32 @@ class Deribit {
     }
 
     async init() {
-        this.setScriptName(this.getScriptName());
+        utils.setScriptName(utils.getScriptName());
         await this.deribitApi.connect()
             .then(() => {
-                this.log(`${new Date} | connected`);
+                utils.log(`${new Date} | connected`);
             })
             .catch((error) => {
-                this.log(`${new Date} | could not connected`, error);
+                utils.log(`${new Date} | could not connected`, error);
             });
 
         /*
         // TODO: Determine if this is necessary if you are able to keep the connection open indefinitely
         await this.deribitApi.enable_cancel_on_disconnect()
             .then(() => {
-                 this.log(`${new Date} | Enable cancel on disconnect`);
+                 utils.log(`${new Date} | Enable cancel on disconnect`);
             })
             .catch((error) => {
-                 this.log(`${new Date} | Could not enable cancel on disconnect.`, error);
+                 utils.log(`${new Date} | Could not enable cancel on disconnect.`, error);
             });
          */
 
         await this.deribitApi.disable_cancel_on_disconnect()
             .then(() => {
-                this.log(`${new Date} | Disable cancel on disconnect`);
+                utils.log(`${new Date} | Disable cancel on disconnect`);
             })
             .catch((error) => {
-                this.log(`${new Date} | Could not disable cancel on disconnect.`, error);
+                utils.log(`${new Date} | Could not disable cancel on disconnect.`, error);
             });
 
 
@@ -143,7 +143,7 @@ class Deribit {
 
         await this.getInitialPosition(instrument);
 
-        this.log(`My Position: ${JSON.stringify(await this.getPosition())}`);
+        utils.log(`My Position: ${JSON.stringify(await this.getPosition())}`);
 
         // Subscribe to Users Changes (updates related to orders, trades, etc)
         await this.subscribePositionChanges(instrument);
@@ -173,7 +173,7 @@ class Deribit {
     async getOpenOrders(instrument, type = "all") {
         return await this.deribitApi.get_open_orders_by_instrument(instrument, type)
             .catch((error) => {
-                this.log(`getOpenOrders Error:`, error);
+                utils.log(`getOpenOrders Error:`, error);
                 return {'result': []};
             });
     }
@@ -182,7 +182,7 @@ class Deribit {
     async getOpenStopOrders() {
         return await this.getOpenOrders('stop_all')
             .catch((error) => {
-                this.log(`getStopOrders Error:`, error);
+                utils.log(`getStopOrders Error:`, error);
                 return {'result': []};
             });
     }
@@ -190,7 +190,7 @@ class Deribit {
     async editStopOrder(orderId, orderSizeUSD, stopPrice) {
         await this.deribitApi.editOrder(orderId, orderSizeUSD, false, stopPrice)
             .catch((error) => {
-                this.log(`getStopOrders Error:`, error);
+                utils.log(`getStopOrders Error:`, error);
             });
     }
 
@@ -205,12 +205,12 @@ class Deribit {
                 if (data['result']) {
                     this.position = data['result'];
                 }else{
-                    this.log(`Using Default Position`);
+                    utils.log(`Using Default Position`);
                     this.position = this.defaultPosition;
                 }
             })
             .catch((error) => {
-                this.log(`Could not Get Initial Position Error:`, error);
+                utils.log(`Could not Get Initial Position Error:`, error);
             });
     }
 
@@ -236,7 +236,7 @@ class Deribit {
         let dOrderType = orderType.replace(/buy_|sell_/g, '');
         orderSizeUSD = parseFloat(orderSizeUSD);
         price = parseFloat(price);
-        //this.log(`Deribit Order Type: ${dOrderType}`);
+        //utils.log(`Deribit Order Type: ${dOrderType}`);
         let orderOptions = {
             "instrument_name": instrument,
             "amount": orderSizeUSD,
@@ -252,47 +252,47 @@ class Deribit {
         }
          */
 
-        //this.log(`Order Options: `,orderOptions);
+        //utils.log(`Order Options: `,orderOptions);
         switch (orderType) {
             case this.orderTypes.buystopmarket:
                 orderOptions = this.removePriceOption(orderOptions);
-                //this.log(`Order Options (After Remove Price): `,orderOptions);
+                //utils.log(`Order Options (After Remove Price): `,orderOptions);
                 orderOptions['stop_price'] = price;
                 orderOptions['trigger'] = "mark_price";
             case this.orderTypes.buylimit:
                 // Place buy order
-                this.log(chalk.rgb(0, 255, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
+                utils.log(chalk.rgb(0, 255, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
                 await this.deribitApi.buy(orderOptions)
                     .then((response) => {
                         if (response.error) {
                             throw new Error(JSON.stringify(response.error));
                         }
-                        //this.log('Buy Response: ', response);
-                        this.log(chalk.rgb(69, 255, 0)(`${orderType} | ${label} | placed.`));
+                        //utils.log('Buy Response: ', response);
+                        utils.log(chalk.rgb(69, 255, 0)(`${orderType} | ${label} | placed.`));
                     })
                     .catch((error) => {
-                        this.log(chalk.rgb(255, 69, 0)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error.message}`));
+                        utils.log(chalk.rgb(255, 69, 0)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error.message}`));
                         throw new Error(error.message);
                     });
                 break;
             case this.orderTypes.sellstopmarket:
                 orderOptions = this.removePriceOption(orderOptions);
-                //this.log(`Order Options (After Remove Price): `,orderOptions);
+                //utils.log(`Order Options (After Remove Price): `,orderOptions);
                 orderOptions['stop_price'] = price;
                 orderOptions['trigger'] = "mark_price";
             case this.orderTypes.selllimit:
                 // Place sell order
-                this.log(chalk.rgb(255, 0, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
+                utils.log(chalk.rgb(255, 0, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
                 await this.deribitApi.sell(orderOptions)
                     .then((response) => {
                         if (response.error) {
                             throw new Error(JSON.stringify(response.error));
                         }
-                        //this.log('Sell Response: ', response);
-                        this.log(chalk.rgb(255, 0, 0)(`${orderType} | ${label} | placed.`));
+                        //utils.log('Sell Response: ', response);
+                        utils.log(chalk.rgb(255, 0, 0)(`${orderType} | ${label} | placed.`));
                     })
                     .catch((error) => {
-                        this.log(chalk.rgb(32, 178, 170)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error.message}`));
+                        utils.log(chalk.rgb(32, 178, 170)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error.message}`));
                         throw new Error(error.message);
                     });
                 break;
@@ -305,10 +305,10 @@ class Deribit {
                 if (data['result']) {
                     this.portfolio = data['result'];
                 }
-                this.log(`Account Summary Retrieved: ${JSON.stringify(this.portfolio)}`);
+                utils.log(`Account Summary Retrieved: ${JSON.stringify(this.portfolio)}`);
             })
             .catch((error) => {
-                this.log(`Could not get Account Summary Error:`, error);
+                utils.log(`Could not get Account Summary Error:`, error);
             });
     }
 
@@ -317,30 +317,30 @@ class Deribit {
 
         await this.deribitApi.subscribe('private', channel)
             .then(() => {
-                    this.log(`Subscribed To Channel: ${channel}`);
+                    utils.log(`Subscribed To Channel: ${channel}`);
                 }
             )
             .then(() => {
                 this.deribitApi.on(channel, async (data) => {
-                    this.log(`Data from channel: ${channel}: ${JSON.stringify(data)}`);
+                    utils.log(`Data from channel: ${channel}: ${JSON.stringify(data)}`);
                     if (data['positions']) {
                         if (data['positions'][0]) {
                             let position = data['positions'][0];
                             this.position['leverage'] = (position['leverage']) ? position['leverage'] : this.position['leverage'];
                             this.position['size'] = (position['size']) ? position['size'] : this.position['size'];
                             this.position['floating_profit_loss'] = (position['floating_profit_loss']) ? position['floating_profit_loss'] : this.position['floating_profit_loss'];
-                            this.log(`Position Update: ${JSON.stringify(this.position)}`);
+                            utils.log(`Position Update: ${JSON.stringify(this.position)}`);
                         } else {
-                            this.log(`No Positions Returned. Getting Directly.`);
+                            utils.log(`No Positions Returned. Getting Directly.`);
                             await this.getInitialPosition(instrument);
                         }
                     } else {
-                        this.log(`No Position Change`);
+                        utils.log(`No Position Change`);
                     }
                 });
             })
             .catch((error) => {
-                this.log(`Could Not Subscribe to Channel: ${channel}`, error);
+                utils.log(`Could Not Subscribe to Channel: ${channel}`, error);
 
             });
     }
@@ -350,17 +350,17 @@ class Deribit {
 
         await this.deribitApi.subscribe('private', channel)
             .then(() => {
-                    this.log(`Subscribed To Channel: ${channel}`);
+                    utils.log(`Subscribed To Channel: ${channel}`);
                 }
             )
             .then(() => {
                 this.deribitApi.on(channel, (data) => {
                     this.portfolio = data;
-                    //this.log(`Portfolio Update: `, this.portfolio);
+                    //utils.log(`Portfolio Update: `, this.portfolio);
                 });
             })
             .catch((error) => {
-                this.log(`Could Not Subscribe Channel: ${channel}`, error);
+                utils.log(`Could Not Subscribe Channel: ${channel}`, error);
 
             });
 
@@ -372,20 +372,20 @@ class Deribit {
         let startUTC = date.toUTCString();
         date.setTime(stop);
         let stopUTC = date.toUTCString();
-        this.log(`Getting Bars From: ${startUTC} - To: ${stopUTC}`);
+        utils.log(`Getting Bars From: ${startUTC} - To: ${stopUTC}`);
         return await this.deribitApi.get_tradingview_chart_data(instrument, start, stop, resolution)
             .then(response => {
 
                 let bars = [];
 
                 if (!response.result) {
-                    this.log(`Error Getting Bars from API No Results. Error: `, response.error);
+                    utils.log(`Error Getting Bars from API No Results. Error: `, response.error);
                     return bars;
                 }
                 const data = response.result;
 
-                //this.log(`Get Bars Response`);
-                //this.log(response);
+                //utils.log(`Get Bars Response`);
+                //utils.log(response);
 
                 let nodata = data.status === 'no_data';
 
@@ -395,7 +395,7 @@ class Deribit {
 
 
                 let barsCount = nodata ? 0 : data.ticks.length;
-                //this.log(`Get Bars Count: ${barsCount}`);
+                //utils.log(`Get Bars Count: ${barsCount}`);
 
                 //let volumePresent = typeof data.cost != 'undefined';
                 let ohlPresent = typeof data.open != 'undefined';
@@ -426,13 +426,13 @@ class Deribit {
                 return bars;
             })
             .catch(async (error) => {
-                this.log(`Error Getting Bars from API.`, error);
+                utils.log(`Error Getting Bars from API.`, error);
                 let bars = [];
                 if (tries > 0) {
                     await this.deribitApi.reconnect();
                     bars = await this.getBars(start, stop, resolution, --tries)
                         .catch((error) => {
-                                this.log(`Error Getting Bars from API on Retry (${(4 - tries)}).`, error);
+                                utils.log(`Error Getting Bars from API on Retry (${(4 - tries)}).`, error);
                                 return bars;
                             }
                         );
@@ -445,13 +445,13 @@ class Deribit {
         let channel = "chart.trades." + instrument + "." + timeframe;
         await this.deribitApi.subscribe('private', channel)
             .then(() => {
-                    this.log(`Subscribed To Channel: ${channel}`);
+                    utils.log(`Subscribed To Channel: ${channel}`);
                 }
             ).then(() => {
                 this.deribitApi.on(channel, onCallback);
             })
             .catch((error) => {
-                this.log(`Could Not Subscribe to Channel: ${channel}`, error);
+                utils.log(`Could Not Subscribe to Channel: ${channel}`, error);
             });
 
     }
@@ -460,13 +460,13 @@ class Deribit {
         let channel = 'user.orders.' + instrument + '.100ms';
         await this.deribitApi.subscribe('private', channel)
             .then(() => {
-                    this.log(`Subscribed To Channel: ${channel}`);
+                    utils.log(`Subscribed To Channel: ${channel}`);
                 }
             ).then(() => {
                 this.deribitApi.on(channel, onCallback);
             })
             .catch((error) => {
-                this.log(`Could Not Subscribe to Channel: ${channel}`, error);
+                utils.log(`Could Not Subscribe to Channel: ${channel}`, error);
             });
 
     }
@@ -474,7 +474,7 @@ class Deribit {
     async cancelByLabel(label) {
         await this.deribitApi.cancel_order_by_label(label)
             .catch((error) => {
-                this.log(`Could Not Cancel By Label: ${label}`, error);
+                utils.log(`Could Not Cancel By Label: ${label}`, error);
             });
     }
 
@@ -484,21 +484,21 @@ class Deribit {
         if (!this.currentPriceMap.has(instrument)) {
             await this.deribitApi.subscribe('private', channel)
                 .then(() => {
-                        this.log(`Subscribed To Channel: ${channel}`);
+                        utils.log(`Subscribed To Channel: ${channel}`);
                     }
                 ).then(() => {
                     this.deribitApi.on(channel, (data) => {
                         if (data['mark_price']) {
                             this.currentPriceMap.set(instrument, data['mark_price'])
                         }
-                        //this.log(`Portfolio Update: `, this.portfolio);
+                        //utils.log(`Portfolio Update: `, this.portfolio);
                     });
                 })
                 .catch((error) => {
-                    this.log(`Could Not Subscribe to Channel: ${channel}`, error);
+                    utils.log(`Could Not Subscribe to Channel: ${channel}`, error);
                 });
         } else {
-            this.log(`Already Subscribed to ${channel}`);
+            utils.log(`Already Subscribed to ${channel}`);
         }
 
     }
@@ -516,21 +516,21 @@ class Deribit {
                     return 0;
                 }
 
-                // this.log(`Close Position(s) Result: ${JSON.stringify(data)}`);
+                // utils.log(`Close Position(s) Result: ${JSON.stringify(data)}`);
             })
             .catch((error) => {
-                this.log(`Could Not Get Current Price for ${instrument}`, error);
+                utils.log(`Could Not Get Current Price for ${instrument}`, error);
             });
     }
 
     async closeOpenPosition(instrument) {
         await this.deribitApi.close_position(instrument, 'market')
             .then((data) => {
-                //this.log(`Position(s) Closed`);
-                this.log(`Close Position(s) Result: ${JSON.stringify(data)}`);
+                //utils.log(`Position(s) Closed`);
+                utils.log(`Close Position(s) Result: ${JSON.stringify(data)}`);
             })
             .catch((error) => {
-                this.log(`Could Not Close Open Position`, error);
+                utils.log(`Could Not Close Open Position`, error);
             });
     }
 
@@ -542,11 +542,11 @@ class Deribit {
         this.instruments = new Map();
         await this.deribitApi.get_instruments('BTC', 'future', false)
             .then(async (data) => {
-                //this.log(`Data from deribitApi.get_instruments(): ${JSON.stringify(data)}`);
+                //utils.log(`Data from deribitApi.get_instruments(): ${JSON.stringify(data)}`);
                 if (data['result']) {
                     for (let i = 0; i < data['result'].length; ++i) {
                         let instrumentName = data['result'][i]['instrument_name'];
-                        //this.log(`Instrument Name : ${instrumentName}`);
+                        //utils.log(`Instrument Name : ${instrumentName}`);
                         let bookSummaryArray = await this.deribitApi.get_book_summary_by_instrument(instrumentName)
                             .then((bookSummaryData) => {
                                 if (bookSummaryData['result']) {
@@ -554,17 +554,17 @@ class Deribit {
                                 }
                             })
                             .catch((error) => {
-                                this.log(`Could not get Book Summary Error:`, error.message);
+                                utils.log(`Could not get Book Summary Error:`, error.message);
                                 return {'volume': 0, 'open_interest': 0};
                             });
-                        //this.log(`Instrument (${instrumentName}) Book Summary: ${JSON.stringify(bookSummaryArray)}`);
+                        //utils.log(`Instrument (${instrumentName}) Book Summary: ${JSON.stringify(bookSummaryArray)}`);
                         this.instruments.set(instrumentName, bookSummaryArray);
                     }
-                    //this.log(`Instruments Retrieved: ${JSON.stringify([...this.instruments.entries()])}`);
+                    //utils.log(`Instruments Retrieved: ${JSON.stringify([...this.instruments.entries()])}`);
                 }
             })
             .catch((error) => {
-                this.log(`Could not get Instruments Error:`, error.message);
+                utils.log(`Could not get Instruments Error:`, error.message);
             });
     }
 

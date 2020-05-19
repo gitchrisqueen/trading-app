@@ -99,14 +99,26 @@ class TradingLogic {
         this.ordersQueue = new Map();
     }
 
+    /**
+     *  Returns the income levels as object array with  name and corresponding timeframes to determine trades
+     * @returns {{intraday: string, daily: string, monthly: string, hourly: string, weekly: string}}
+     */
     getIncomeLevels() {
         return this.incomeLevels;
     }
 
+    /**
+     * Returns the income level set for this trading logic instance with corresponding timeframes used to determine treads
+     * @returns {*}
+     */
     getIncomeLevel() {
         return this.incomeLevel;
     }
 
+    /**
+     *  Set the income level to use for trading decisions
+     * @param incomeLevel
+     */
     setIncomeLevel(incomeLevel) {
         this.incomeLevel = incomeLevel;
         switch (incomeLevel) {
@@ -152,6 +164,10 @@ class TradingLogic {
         }
     }
 
+    /**
+     *  Determine which instrument returned from marketplace is most liquid (Highest volume followed by highest open interest)
+     * @returns {unknown}
+     */
     getMostLiquidInstrument() {
         let instruments = this.Deribit.getInstruments();
 
@@ -173,6 +189,10 @@ class TradingLogic {
         return mostLiquidInstrument;
     }
 
+    /**
+     * Initiate all the asynchronous methods that need to run for this instance
+     * @returns {Promise<void>}
+     */
     async init() {
         this.setScriptName(this.getScriptName());
         this.log('Started');
@@ -190,10 +210,8 @@ class TradingLogic {
         // Setup the subscriptions for the instrument we will be executing trades on
         this.Deribit.setupPositionSubscriptions(mostLiquidInstrument);
 
-
         // Get All Open Orders so they aren't duplicated if system restarts
         await this.trackAllOpenOrders();
-
 
         await this.Deribit.subscribeOrderUpdates(this.getInstrumentByTimeFrame(this.LTF), async (orders) => {
             await this.handleOrderUpdates(orders);
@@ -206,48 +224,48 @@ class TradingLogic {
 
             // Get All bars for each time frame
             await this.getAPIBars(timeframe)
-                .then(async () => {
 
-                    // Assess information for each timeframe
-                    await this.assessTimeFrame(timeframe);
+            // Assess information for each timeframe
+            await this.assessTimeFrame(timeframe);
+            // Determine important information for the timeframe
+            this.determineByTimeFrame(timeframe);
 
-                })
-                .then(async () => {
-                    // Subscribe to the api for new bar data for each time frame
-                    await this.Deribit.subscribeBars(this.getInstrumentByTimeFrame(timeframe), timeframe, async (data) => {
+            // Subscribe to the api for new bar data for each time frame
+            await this.Deribit.subscribeBars(this.getInstrumentByTimeFrame(timeframe), timeframe, async (data) => {
 
-                        // Add new Bar to Bar Map
-                        let newBarAdded = this.addSubscribedBarToMap(timeframe, data);
+                // Add new Bar to Bar Map
+                let newBarAdded = this.addSubscribedBarToMap(timeframe, data);
 
-                        // Need to place queued orders on every bar movement of LTF
-                        if (timeframe == this.LTF) {
-                            //await this.test(); // TODO: Delete or comment out this line
+                // Need to place queued orders on every bar movement of LTF
+                if (timeframe == this.LTF) {
+                    //await this.test(); // TODO: Delete or comment out this line
 
-                            // Place Queue Orders
-                            await this.placeQueuedBracketOrders();
-                        }
+                    // Place Queue Orders
+                    await this.placeQueuedBracketOrders();
+                }
 
-                        // Only make new assessments when a new bars is added. Not updated.
-                        if (newBarAdded) {
-                            this.assessTimeFrame(timeframe);
-                        }
+                // Only make new assessments when a new bars is added. Not updated.
+                if (newBarAdded) {
+                    this.assessTimeFrame(timeframe);
+                    // Determine important information for the timeframe
+                    this.determineByTimeFrame(timeframe);
+                }
 
-                        // Need to update our orders on every bar movement of LTF
-                        if (timeframe == this.LTF) {
-                            // Update any trail stops for better profits or lingering trail stops
-                            // Handle missed or straggling entry orders
-                            await this.handleOpenOrders();
-                        }
-                    }).catch((error) => {
-                        this.log(`subscribeBars() Error:`, error);
-                    });
-
-                });
-
+                // Need to update our orders on every bar movement of LTF
+                if (timeframe == this.LTF) {
+                    // Update any trail stops for better profits or lingering trail stops
+                    // Handle missed or straggling entry orders
+                    await this.handleOpenOrders();
+                }
+            }).catch((error) => {
+                this.log(`subscribeBars() Error:`, error);
+            });
 
         }
     }
 
+    //TODO: Move these test to their own testing file
+    /*
     async test() {
         if (!this.testRan) {
             await this.test1();
@@ -363,8 +381,12 @@ class TradingLogic {
         this.queueOrder(bracketOrder, targetZoneTimeStampMili, entryZoneTimeStampMili)
 
     }
+     */
 
-
+    /**
+     * For the given timeframe map all bases, and discover supply, demand, and fresh zones
+     * @param timeframe
+     */
     assessTimeFrame(timeframe) {
         // Map out the bases for the timeframe
         this.log(`Mapping all Bases for Timeframe: ${timeframe}`);
@@ -377,10 +399,12 @@ class TradingLogic {
         this.log(`Discovering all Zones for Timeframe: ${timeframe}`);
         this.discoverZones(timeframe);
 
-        // Determine important information for the timeframe
-        this.determineByTimeFrame(timeframe);
     }
 
+    /**
+     * Determine either the Curve (HTF), Trend (ITF), or Trade (LTF) for the given timeframe
+     * @param timeframe
+     */
     determineByTimeFrame(timeframe) {
 
         switch (timeframe) {
@@ -402,6 +426,12 @@ class TradingLogic {
         }
     }
 
+    /**
+     * Return the properties (distal, proximal, isFresh, isSupply, isDemand) of the given zone in the given timeframe.
+     * @param zone
+     * @param timeframe
+     * @returns {{distal, proximal: number}|{distal, proximal}}
+     */
     getZonePropertiesAdvanced(zone, timeframe) {
         // TODO: Get properties from helper than add freshness to it
 
@@ -419,6 +449,10 @@ class TradingLogic {
         return prop;
     }
 
+    /**
+     * Return an object array with indexes (supply, demand, freshsupply, freshdemand) that each hold a Map of zones with the zone's first bar time as the key
+     * @returns {{freshdemand: Map<any, any>, freshsupply: Map<any, any>, supply: Map<any, any>, demand: Map<any, any>}}
+     */
     getZoneTypes() {
         return {
             supply: new Map(),
@@ -428,6 +462,10 @@ class TradingLogic {
         };
     }
 
+    /**
+     * Call getOpenOrdersAsBracketOrdersMap() to map open orders placed on the market and mapped as brackets (Set, Entry, Target)
+     * @returns {Promise<void>}
+     */
     async trackAllOpenOrders() {
         this.orders = await this.getOpenOrdersAsBracketOrdersMap();
         this.log(`Total Open Bracket Orders: ${this.orders.size}`);
@@ -438,23 +476,44 @@ class TradingLogic {
         this.log(`Total Open Orders: ${totalOrders}`);
     }
 
-
+    /**
+     * Return the pre-calculated HTF risk determined when the Curve was calculated
+     * @returns {number}
+     */
     getHTFRisk() {
         return this.htfRisk;
     }
 
+    /**
+     * Return the pre-calculated HTF reward determined when the Curve was calculated
+     * @returns {number}
+     */
     getHTFReward() {
         return this.htfReward;
     }
 
+    /**
+     * Return the assessed Curve (High, Equal, Low, Unknown)
+     * @returns {string}
+     */
     getCurve() {
         return this.curve.text;
     }
 
+    /**
+     * Return the assessed Trend (Uptrend, Strong Uptrend, Sideways, Downtrend, Strong Downtrend, Unknown)
+     * @returns {string}
+     */
     getTrend() {
         return this.trend.text;
     }
 
+    /**
+     *  Return the current price for the timeFrame from the market
+     *  TODO: Change this so its just current price. Timeframe shouldn't matter
+     * @param timeframe
+     * @returns {number}
+     */
     getCurrentPrice(timeframe) {
         //let currentPrice =  this.getLastBar(timeframe).close;
         let currentPrice = this.Deribit.getCurrentPriceStored(this.getInstrumentByTimeFrame(timeframe));
@@ -463,6 +522,11 @@ class TradingLogic {
 
     }
 
+    /**
+     * Return the last bar (open, close, high, low, time) for the given timeframe
+     * @param timeframe
+     * @returns {unknown}
+     */
     getLastBar(timeframe) {
         let mapDesc = new Map([...this.barMap.get(timeframe).entries()].sort());
         let barsDesc = Array.from(mapDesc.values());
@@ -470,6 +534,11 @@ class TradingLogic {
         return barsDesc.pop();
     }
 
+    /**
+     * Return the first bar (open, close, high, low, time) for the given timeframe
+     * @param timeframe
+     * @returns {unknown}
+     */
     getFirstBar(timeframe) {
         let mapDesc = new Map([...this.barMap.get(timeframe).entries()].sort());
         let barsDesc = Array.from(mapDesc.values());
@@ -477,6 +546,11 @@ class TradingLogic {
         return barsDesc.shift();
     }
 
+    /**
+     * Discover and map zones (supply, demand, freshSupply, freshDemand ) for the given timeframe
+     * TODO: Determine if going from latest zone to oldets and keeping only a small subset is better than traversing all zones each time
+     * @param timeframe
+     */
     discoverZones(timeframe) {
 
         let currentPrice = this.getCurrentPrice(timeframe);
@@ -528,7 +602,10 @@ class TradingLogic {
         }
     }
 
-
+    /**
+     *
+     * @param timeframe
+     */
     updateBaseMap(timeframe) {
         //Dont delete bases. They dont change. Just update since last bar time
         //this.log(`Updating BaseMap for Timeframe: ${timeframe}`);
