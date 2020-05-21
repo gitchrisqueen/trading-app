@@ -4,6 +4,7 @@
 
 //
 const deribit = require('../src/deribit');
+const ut = require('../src/utils');
 let dbit;
 const time = Date.now();
 const key = '3hjn18oV';
@@ -14,7 +15,7 @@ process.env.SECRET = secret;
 process.env.DOMAIN = domain;
 dbit = new deribit();
 
-jest.setTimeout(10000); // 10 seconds
+//jest.setTimeout(10000); // 10 seconds
 
 beforeAll(() => {
     //return dbit.init();
@@ -97,76 +98,84 @@ describe(`Get Functions Test`, () => {
 
     describe(`Asynchronous Functions`, () => {
 
-
-        beforeAll(async () => {
-            jest.setTimeout(10000); // 10 seconds
-            process.env.KEY = key;
-            process.env.SECRET = secret;
-            process.env.DOMAIN = domain;
-            //console.log(`process.env.KEY = ${process.env.KEY}`);
-            //console.log(`process.env.SECRET = ${process.env.SECRET}`);
-            //console.log(`process.env.DOMAIN = ${process.env.DOMAIN}`);
-            dbit = new deribit();
-            return await dbit.init();
-
-        });
-
-        afterAll(() => {
-            jest.setTimeout(10000); // 10 seconds
-            return dbit.disconnect();
-        });
-
         describe.each([
-            ['BTC-PERPETUAL', time - (1000 * 60 * 60), time - (1000 * 60 * 60), '1', 1],
-            ['BTC-PERPETUAL', time - (1000 * 60 * 60), time - (1000 * 60 * 60) + (1000 * 60), '1', 1],
-            ['BTC-PERPETUAL', time - (1000 * 60 * 60), time - (1000 * 60 * 60) + (1000 * 60 * 15 * 3), '15', 3],
-            ['BTC-PERPETUAL', time - (1000 * 60 * 60 * 24 * 7), time - (1000 * 60 * 60 * 24 * 7) + (1000 * 60 * 60 * 24 * 3), '1D', 4],
-            ['BTC-PERPETUAL', time + (1000 * 60 * 60), time + (1000 * 60 * 60), '1', 0], // Time an hour in the future
-            ['BTC-PERPETUAL', 1167609600000, 1167609600000, '1', 0] // Time (1/1/2007) before bitcoin was even created (~2008)
+            ['BTC-PERPETUAL', time - (1000 * 60 * 60), time - (1000 * 60 * 60), '1', true],
+            ['BTC-PERPETUAL', time - (1000 * 60 * 60), time - (1000 * 60 * 60) + (1000 * 60), '1', true],
+            ['BTC-PERPETUAL', time - (1000 * 60 * 60), time - (1000 * 60 * 60) + (1000 * 60 * 15 * 3), '15', true],
+            ['BTC-PERPETUAL', time - (1000 * 60 * 60 * 24 * 7), time - (1000 * 60 * 60 * 24 * 7) + (1000 * 60 * 60 * 24 * 3), '1D', true],
+            ['BTC-PERPETUAL', time + (1000 * 60 * 60), time + (1000 * 60 * 60), '1', false], // Time an hour in the future
+            ['BTC-PERPETUAL', 1167609600000, 1167609600000, '1', false] // Time (1/1/2007) before bitcoin was even created (~2008)
             // TODO: A time where stop less than start ???
-        ])(`getBars(%s,%i,%i,%s)`, async (inst, start, stop, resolution, expectedBarCount) => {
+        ])(`getBars(%s,%i,%i,%s)`, (inst, start, stop, resolution, expectsBars) => {
 
             // Expect the first bar time to equal the start time
             // Expect the last bar time to equal the last time
             // Expect the returned array length to equal the expectedBarCount
             // Expect the returned bars to have properties (high,low,open,close,time)
 
-            function testResults() {
-                let results = dbit.getBars(inst, start, stop, resolution);
 
-                test(`expects results to have property length`, () => {
-                    expect(results).toHaveProperty('length');
-                });
+            let results, length, firstBar, lastBar, firstBarTime, lastBarTime, expectedBarCount = 0;
+            let properties = ['high', 'low', 'open', 'close', 'time'];
+            let resolutionInMinutes = ut.getTimeFrameInMinutes(resolution);
+            let resolutionInMilliSeconds = resolutionInMinutes * 60 * 1000;
+            //let divisor = ut.div_mod(resolutionInMilliSeconds, 10)[0];
+            let divisor = resolutionInMilliSeconds
 
-                let length = results.length;
-                if (expectedBarCount > 0) {
-                    let firstBar = results[0];
-                    let lastBar = results[length - 1];
+            beforeAll(async () => {
+                await dbit.init();
+                results = await dbit.getBars(inst, start, stop, resolution);
+                length = results.length;
+                firstBar = results[0];
+                lastBar = results[length - 1];
+                firstBarTime = (firstBar && firstBar.time) ? firstBar.time : start;
+                lastBarTime = (lastBar && lastBar.time) ? lastBar.time : stop;
+                firstBarTime = Math.floor(firstBarTime / divisor);
+                lastBarTime = Math.floor(lastBarTime / divisor);
+                if (expectsBars) {
+                    // Determine how many Bars we should get
+                    let diff = Math.abs(start - stop);
+                    let mod = ut.div_mod(diff, divisor);
+                    expectedBarCount = (mod[0] > 0) ? mod[0] + 1 : 0;
+                }
+                start = Math.floor(start / divisor);
+                return stop = Math.floor(stop / divisor);
+            });
 
-                    for (let bar in results) {
-                        let properties = ['high', 'low', 'open', 'close', 'time'];
-                        for (let prop in properties) {
-                            test(`expects bar to have property`, () => {
-                                expect(bar).toHaveProperty(prop);
-                            });
+            afterAll(async () => {
+                return await dbit.disconnect();
+            });
+
+            test(`expects results to have property length`, async () => {
+                return expect(results).toHaveProperty('length');
+            });
+
+
+            if (expectsBars) {
+                test(`expects bar to have properties: ${JSON.stringify(properties)}`, async () => {
+                    for (let r in results) {
+                        let bar = results[r];
+                        for (let p in properties) {
+                            return expect(bar).toHaveProperty(properties[p]);
                         }
                     }
-                    test(`expects first bar time to equal ${start}`, () => {
-                        expect(firstBar.time).toBe(start);
-                    });
-                    test(`expects last bar time to equal ${stop}`, () => {
-                        expect(lastBar.time).toBe(stop);
-                    });
-                }
-                test(`expects ${expectedBarCount} bar(s)`, () => {
-                    expect(length).toBe(expectedBarCount);
+                });
+
+                test(`expects first bar time to be close to ${start}`, async () => {
+                    return expect(firstBarTime / (divisor)).toBeCloseTo(start / (divisor), 0);
+                });
+                test(`expects last bar time to close to ${stop}`, async () => {
+                    return expect(lastBarTime).toBeCloseTo(stop, 0);
+                });
+                test(`expects bar(s)`, async() => {
+                    return expect(length).toBe(expectedBarCount);
+                });
+            } else {
+                test(`expects 0 bar(s)`, async () => {
+                    return expect(length).toBe(expectedBarCount);
                 });
             }
 
-            return testResults();
-
         });
-
     });
 });
 

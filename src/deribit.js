@@ -10,26 +10,27 @@ utils.setScriptName('Deribit.js');
 //Deribit API
 const DBV2WS = require('deribit-v2-ws-gitchrisqueen');
 
-process.on("unhandledRejection", function (reason, promise) {
-    /* You might start here by adding code to examine the
-       promise specified by event.promise and the reason in
-       event.reason */
-
-    console.log(chalk.red.bold("[PROCESS] Unhandled Promise Rejection"));
-    console.log(chalk.red.bold("- ".padEnd(30, '- ')));
-    console.log(`Reason`);
-    console.log(reason);
-    console.log(`Promise`);
-    console.log(promise);
-    console.log(chalk.red.bold("- ".padEnd(30, '- ')));
-
-
-});
-
 class Deribit {
 
     constructor() {
-        this.DEBUG = true;
+        this.DEBUG = false;
+
+        if(this.DEBUG){
+            process.on("unhandledRejection", function (reason, promise) {
+                /* You might start here by adding code to examine the
+                   promise specified by event.promise and the reason in
+                   event.reason */
+
+                utils.log(chalk.red.bold("[PROCESS] Unhandled Promise Rejection"));
+                utils.log(chalk.red.bold("- ".padEnd(30, '- ')));
+                utils.log(`Reason`);
+                utils.log(reason);
+                utils.log(`Promise`);
+                utils.log(promise);
+                utils.log(chalk.red.bold("- ".padEnd(30, '- ')));
+
+            });
+        }
 
         this.defaultPosition = {
             'leverage': 1,
@@ -81,7 +82,7 @@ class Deribit {
         const key = process.env.KEY;
         const secret = process.env.SECRET;
         const domain = process.env.DOMAIN;
-        const debug = true;
+        const debug = this.DEBUG;
 
         if (key && secret && domain) {
             utils.log('Connecting to API');
@@ -99,13 +100,13 @@ class Deribit {
     }
 
     async init() {
-        utils.setScriptName(utils.getScriptName());
         await this.deribitApi.connect()
             .then(() => {
                 utils.log(`${new Date} | connected`);
             })
             .catch((error) => {
                 utils.log(`${new Date} | could not connect`, error);
+                throw new Error('Could not connect: Error: '+error.message);
             });
 
         /*
