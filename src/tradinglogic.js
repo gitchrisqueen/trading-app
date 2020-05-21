@@ -34,9 +34,6 @@ class TradingLogic {
 
         this.maxAPIBarInterval = 5000; // TODO: Determine best number of bars to retrieve
 
-        this.baseMinSize = 2;
-
-
         this.curvePlacements = {
             HIGH:
                 {
@@ -641,31 +638,6 @@ class TradingLogic {
         return bases
     }
 
-    discoverBasesFromBars(bars) {
-        //this.log(`Bars: `,bars);
-        //this.log(`Bars Entries: `,bars.entries());
-        let bases = new Map();
-        let base = [];
-
-        for (const bar of bars.values()) {
-            //this.log(`Bar: `,bar);
-
-            if (this.isExcitingBar(bar)) {
-                if (base.length >= this.baseMinSize) {
-                    bases.set(base[0].time, base);
-                }
-                base = [];
-            } else if (this.isBoringBar(bar)) {
-                base.push(bar);
-            }
-        }
-
-        if (base.length >= this.baseMinSize) {
-            bases.set(base[0].time, base);
-        }
-        return bases;
-    }
-
     getBars(timeframe, from = 0, to = Date.now()) {
         let barsMapped = this.getBarsMapped(timeframe, from, to);
         return Array.from([...barsMapped.values()]);
@@ -976,31 +948,6 @@ class TradingLogic {
 
     getInstrumentByTimeFrame(timeframe) {
         return (this.insturmentTimeframeMap.has(timeframe)) ? this.insturmentTimeframeMap.get(timeframe) : 'BTC-PERPETUAL';
-    }
-
-    getTimeFrameInMinutes(timeframe) {
-        let minutes = parseInt(timeframe);
-
-        const INTERVALS_MAP = { // In minutes
-            'h': 60,
-            'd': 60 * 24,
-            'w': 60 * 24 * 7,
-            'm': 60 * 24 * this.daysInMonth(new Date().getMonth() + 1, new Date().getFullYear()),
-        };
-
-        let interval = ('' + timeframe).toLowerCase();
-        for (let index in INTERVALS_MAP) {
-            let value = INTERVALS_MAP[index];
-            if (interval.indexOf(index) !== -1) {
-                let increment = interval.replace(index, '');
-                minutes = parseInt(increment) * value;
-                break;
-            }
-        }
-
-        //this.log(`${timeframe} = ${minutes} minutes`);
-
-        return minutes;
     }
 
     determineTrend() {

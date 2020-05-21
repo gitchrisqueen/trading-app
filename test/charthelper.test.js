@@ -2,177 +2,167 @@
  * Copyright (c) 2020. Christopher Queen Consulting LLC (http://www.ChristopherQueenConsulting.com/)
  */
 
+
+const cs = require('./chartsetup');
+
 const charthelper = require('../src/charthelper');
 const ch = new charthelper();
 
-const time = Date.now();
+describe('Bar Tests', () => {
 
-const bar1 =
-    {
-        high: 4,
-        open: 3,
-        close: 2,
-        low: 1,
-        time: time
-    }
+    beforeAll(() => {
+        //console.log("Bar 1 => " + JSON.stringify(cs.bar1));
+        //console.log("Bar 2 => " + JSON.stringify(cs.bar2));
+        //console.log("Bar 3 => " + JSON.stringify(cs.bar3));
+        //console.log("Bar Boring => " + JSON.stringify(cs.barBoring));
+        //console.log("Bar Exciting => " + JSON.stringify(cs.barExciting));
+    })
 
-const bar2 =
-    {
-        high: 8,
-        open: 7,
-        close: 6,
-        low: 5,
-        time: time + 1000
-    }
+    describe('getBarBody()', () => {
+        for (let bar in cs.zone.values()) {
+            test('(' + JSON.stringify(bar) + ') expects 1', () => {
+                expect(ch.getBarBody(bar)).toBe(1);
 
+            });
+        }
 
-const bar3 =
-    {
-        high: 12,
-        open: 11,
-        close: 10,
-        low: 9,
-        time: time + 2000
-    }
+    });
 
-const barBoring =
-    {
-        high: 10,
-        open: 6,
-        close: 5,
-        low: 1,
-        time: time + 3000
-    }
+    describe('getBarRange()', () => {
+        for (let bar in cs.zone.values()) {
+            test('(' + JSON.stringify(bar) + ') expects 3', () => {
+                expect(ch.getBarRange(bar)).toBe(3);
+            });
+        }
 
-const barExciting =
-    {
-        high: 10,
-        open: 9,
-        close: 2,
-        low: 1,
-        time: time + 4000
-    }
-
-const currentPrice = 20;
-
-const boringBarArray1 = Object.entries(barBoring);
-const demandBar = boringBarArray1.reduce(function (map, obj) {
-    let key = obj.shift();
-    let value = obj.shift();
-    if (key != 'time') {
-        map[key] = currentPrice - (value * 2)
-    }
-    return map;
-}, {});
-
-const demand = [demandBar, demandBar, demandBar];
-
-const boringBarArray2 = Object.entries(barBoring);
-const supplyBar = boringBarArray2.reduce(function (map, obj) {
-    let key = obj.shift();
-    let value = obj.shift();
-    if (key != 'time') {
-        map[key] = currentPrice + (value * 2);
-    }
-    return map;
-}, {});
-
-const supply = [supplyBar, supplyBar, supplyBar];
+    });
 
 
-const zone = [bar1, bar1, bar3];
+    describe('isBoringBar()', () => {
+        test('(barBoring) expects true', () => {
+            expect(ch.isBoringBar(cs.barBoring)).toBe(true);
+        });
+        test('(barExciting) expects false', () => {
+            expect(ch.isBoringBar(cs.barExciting)).toBe(false);
+        });
+    });
 
+    describe('isExcitingBar()', () => {
+        test('(barBoring) expects false', () => {
+            expect(ch.isExcitingBar(cs.barBoring)).toBe(false);
+        });
+        test('(barExciting) expects true', () => {
+            expect(ch.isExcitingBar(cs.barExciting)).toBe(true);
+        });
+    });
 
-test('getMinBaseLow(' + JSON.stringify(zone) + ') expects 1', () => {
-    expect(ch.getMinBaseLow(zone)).toBe(1);
 });
 
-test('getMinBaseBody(' + JSON.stringify(zone) + ') expects 2', () => {
-    expect(ch.getMinBaseBody(zone)).toBe(2);
+describe('Zone Tests', () => {
+    beforeAll(() => {
+        //console.log(JSON.stringify(cs.zone));
+    })
+    test('getMinBaseLow(zone) expects 1', () => {
+        expect(ch.getMinBaseLow(cs.zone)).toBe(1);
+    });
+    test('getMinBaseBody(zone) expects 2', () => {
+        expect(ch.getMinBaseBody(cs.zone)).toBe(2);
+    });
+    test('getMaxBaseHigh(zone) expects 12', () => {
+        expect(ch.getMaxBaseHigh(cs.zone)).toBe(12);
+    });
+    test('getMaxBaseBody(zone) expects 11', () => {
+        expect(ch.getMaxBaseBody(cs.zone)).toBe(11);
+    });
+    test('getBaseBodyMid(zone) expects 6.5', () => {
+        expect(ch.getBaseBodyMid(cs.zone)).toBe(6.5);
+    });
+
+    describe.each([
+        [cs.supply, cs.currentPrice, cs.supplyZonePropertiesExpect, true, false],
+        [cs.demand, cs.currentPrice, cs.demandZonePropertiesExpect, false, true]
+    ])('Zone Properties Test', (z, c, expectedZoneProperties, isSupply, isDemand) => {
+        describe('getZoneProperties()', () => {
+            let getZonePropertiesResults = ch.getZoneProperties(z, c);
+
+            test('expects to be equal', () => {
+                expect(getZonePropertiesResults).toEqual(expectedZoneProperties);
+            });
+            test('expects not to be', () => {
+                expect(getZonePropertiesResults).not.toBe(expectedZoneProperties);
+            });
+        });
+        describe('isSupply()', () => {
+            let isSupplyResult = ch.isSupply(z, c);
+            test(`expects ${isSupply}`, () => {
+                expect(isSupplyResult).toBe(isSupply);
+            });
+            test(`expects ${isDemand}`, () => {
+                expect(isSupplyResult).not.toBe(isDemand);
+            });
+        });
+        describe('isDemand()', () => {
+            let isDemandResult = ch.isDemand(z, c);
+            test(`expects ${isDemand}`, () => {
+                expect(isDemandResult).toBe(isDemand);
+            });
+            test(`expects ${isDemand}`, () => {
+                expect(isDemandResult).not.toBe(isSupply);
+            });
+        });
+    });
+
+    describe.each([
+        [cs.zone, cs.time, parseInt(cs.time / 1000), parseInt(cs.time / (1000 * 60))],
+        [cs.zone, cs.bar1.time, parseInt(cs.bar1.time / 1000), parseInt(cs.bar1.time / (1000 * 60))]
+    ])('Zone Time Test', (z, expectedTimeMilli, expectedTimeSeconds, expectedTimeMinutes) => {
+
+        describe('getZoneTimeStampMilli(zone)', () => {
+            test('expects ' + expectedTimeMilli, () => {
+                expect(ch.getZoneTimeStampMilli(z)).toBe(expectedTimeMilli);
+            });
+        });
+        describe('getZoneTimeStampSeconds(zone)', () => {
+            test('expects ' + expectedTimeSeconds, () => {
+                expect(ch.getZoneTimeStampSeconds(z)).toBe(expectedTimeSeconds);
+            });
+        });
+        describe('getZoneTimeStampMinutes(zone)', () => {
+            test('expects ' + expectedTimeMinutes, () => {
+                expect(ch.getZoneTimeStampMinutes(z)).toBe(expectedTimeMinutes);
+            });
+        });
+    });
 });
 
-test('getMaxBaseHigh(' + JSON.stringify(zone) + ') expects 12', () => {
-    expect(ch.getMaxBaseHigh(zone)).toBe(12);
+describe.each([
+    [cs.bars, , 3],
+    [cs.bars, 3, 2],
+    [cs.bars, 4, 1]
+])('discoverBasesFromBars()', (a, b, expected) => {
+    test(`minBase = ${b} expects ${expected}`, () => {
+        let discovery = ch.discoverBasesFromBars(a, b);
+        expect(discovery.size).toBe(expected);
+    });
 });
 
-test('getMaxBaseBody(' + JSON.stringify(zone) + ') expects 11', () => {
-    expect(ch.getMaxBaseBody(zone)).toBe(11);
+/*
+test('discoverBasesFromBars(' + JSON.stringify([...cs.bars.entries()]) + ') expects 3 bases ', () => {
+
 });
 
-test('getBaseBodyMid(' + JSON.stringify(zone) + ') expects 6.5', () => {
-    expect(ch.getBaseBodyMid(zone)).toBe(6.5);
+test('discoverBasesFromBars(' + JSON.stringify([...cs.bars.entries()]) + ',3) expects 2 bases ', () => {
+    let discovery = ch.discoverBasesFromBars(cs.bars, 3);
+    expect(discovery.size).toBe(2);
 });
 
-test('getBarBody(' + JSON.stringify(zone) + ') expects 1,1,1', () => {
-    expect(ch.getBarBody(bar1)).toBe(1);
-    expect(ch.getBarBody(bar2)).toBe(1);
-    expect(ch.getBarBody(bar3)).toBe(1);
-});
-
-test('getBarRange(' + JSON.stringify(zone) + ') expects 3,3,3', () => {
-    expect(ch.getBarRange(bar1)).toBe(3);
-    expect(ch.getBarRange(bar2)).toBe(3);
-    expect(ch.getBarRange(bar3)).toBe(3);
-});
-
-test('isBoringBar(' + JSON.stringify([barBoring, barExciting]) + ') expects true,false', () => {
-    expect(ch.isBoringBar(barBoring)).toBe(true);
-    expect(ch.isBoringBar(barExciting)).toBe(false);
-});
-
-test('isExcitingBar(' + JSON.stringify([barBoring, barExciting]) + ') expects false,true', () => {
-    expect(ch.isExcitingBar(barBoring)).toBe(false);
-    expect(ch.isExcitingBar(barExciting)).toBe(true);
-});
-
-const supplyZonePropertiesExpect = {
-    proximal: supplyBar.close,
-    distal: supplyBar.open,
-    isSupply: true,
-    isDemand: false
-}
-
-const demandZonePropertiesExpect = {
-    proximal: demandBar.close,
-    distal: demandBar.open,
-    isSupply: false,
-    isDemand: true
-}
-
-test('getZoneProperties(' + JSON.stringify([supply, demand]) + ') expects ' + JSON.stringify(supplyZonePropertiesExpect) + ', true, ' + JSON.stringify(demandZonePropertiesExpect) + ', true', () => {
-    expect(ch.getZoneProperties(supply, currentPrice)).toEqual(supplyZonePropertiesExpect);
-    expect(ch.getZoneProperties(supply, currentPrice)).not.toBe(supplyZonePropertiesExpect);
-    expect(ch.getZoneProperties(demand, currentPrice)).toEqual(demandZonePropertiesExpect);
-    expect(ch.getZoneProperties(demand, currentPrice)).not.toBe(demandZonePropertiesExpect);
-});
-
-
-test('isSupply(' + JSON.stringify([supply, demand]) + ') expects true,false', () => {
-    expect(ch.isSupply(supply, currentPrice)).toBe(true);
-    expect(ch.isSupply(demand, currentPrice)).toBe(false);
-});
-
-test('isDemand(' + JSON.stringify([supply, demand]) + ') expects false,true', () => {
-    expect(ch.isDemand(supply, currentPrice)).toBe(false);
-    expect(ch.isDemand(demand, currentPrice)).toBe(true);
-});
-
-test('getZoneTimeStampMilli(' + JSON.stringify(zone) + ') expects '+time, () => {
-    expect(ch.getZoneTimeStampMilli(zone)).toBe(time);
-    expect(ch.getZoneTimeStampMilli(zone)).toBe(zone[0].time);
-});
-
-test('getZoneTimeStampSeconds(' + JSON.stringify(zone) + ') expects '+parseInt(time/1000), () => {
-    expect(ch.getZoneTimeStampSeconds(zone)).toBe(parseInt(time/1000));
-    expect(ch.getZoneTimeStampSeconds(zone)).toBe(parseInt(bar1.time/1000));
-});
-
-test('getZoneTimeStampMinutes(' + JSON.stringify(zone) + ') expects '+parseInt(time/(1000*60)), () => {
-    expect(ch.getZoneTimeStampMinutes(zone)).toBe(parseInt(time/(1000*60)));
-    expect(ch.getZoneTimeStampMinutes(zone)).toBe(parseInt(bar1.time/(1000*60)));
+test('discoverBasesFromBars(' + JSON.stringify([...cs.bars.entries()]) + ',4) expects 1 base ', () => {
+    let discovery = ch.discoverBasesFromBars(cs.bars, 4);
+    expect(discovery.size).toBe(1);
 });
 
 
+ */
 
 
 

@@ -80,6 +80,31 @@ class ChartHelper {
         return parseInt(this.getZoneTimeStampSeconds(zone)/60);
     }
 
+    discoverBasesFromBars(bars, baseMinSize = 2) {
+        //this.log(`Bars: `,bars);
+        //this.log(`Bars Entries: `,bars.entries());
+        let bases = new Map();
+        let base = [];
+
+        for (const bar of bars.values()) {
+            //this.log(`Bar: `,bar);
+
+            if (this.isExcitingBar(bar)) {
+                if (base.length >= baseMinSize) {
+                    bases.set(this.getZoneTimeStampMilli(base), base);
+                }
+                base = [];
+            } else {
+                base.push(bar);
+            }
+        }
+
+        if (base.length >= baseMinSize) {
+            bases.set(this.getZoneTimeStampMilli(base), base);
+        }
+        return bases;
+    }
+
 
 }
 

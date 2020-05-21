@@ -5,6 +5,7 @@
 let bluebird = require('bluebird');
 const chalk = require("chalk");
 const utils = require('./utils');
+utils.setScriptName('Deribit.js');
 
 //Deribit API
 const DBV2WS = require('deribit-v2-ws-gitchrisqueen');
@@ -24,7 +25,6 @@ process.on("unhandledRejection", function (reason, promise) {
 
 
 });
-
 
 class Deribit {
 
@@ -94,8 +94,8 @@ class Deribit {
 
     }
 
-    getOrderTypes() {
-        return this.orderTypes;
+    async disconnect(){
+        this.deribitApi.end();
     }
 
     async init() {
@@ -105,7 +105,7 @@ class Deribit {
                 utils.log(`${new Date} | connected`);
             })
             .catch((error) => {
-                utils.log(`${new Date} | could not connected`, error);
+                utils.log(`${new Date} | could not connect`, error);
             });
 
         /*
@@ -127,16 +127,177 @@ class Deribit {
                 utils.log(`${new Date} | Could not disable cancel on disconnect.`, error);
             });
 
-
-        await this.getAPIInstruments();
+        // Get available instruments from the APO
+        this.retrieveAPIInstruments();
 
         // Get the account summary so you know amounts to trade
-        await this.getAccountSummary();
+        this.retrieveAccountSummary();
 
         // Subscribe to portfolio updates so we have current amounts
         await this.subscribePortfolioUpdates();
+    }
+
+    /**
+     * Return Object array of valid order types
+     * @returns {{sellstopmarket: string, buylimit: string, selllimit: string, buystopmarket: string}}
+     */
+    getOrderTypes() {
+        return this.orderTypes;
+    }
+
+    /**
+     * Returns the equity property value of the portfolio property
+     * @returns {number}
+     */
+    getPortfolioEquityBTC() {
+        return this.portfolio.equity;
+    }
+
+    /**
+     * Returns the total profit and loss of the portfolio in bitcoin
+     * @returns {number}
+     */
+    getPortfolioTotalPLBTC() {
+        return this.portfolio.total_pl;
+    }
+
+    /**
+     * Returns the account total in bitcoin which equals the portfolio equity + the portfolio total profit and loss
+     * @returns {number}
+     */
+    getAccountTotalBTC() {
+        return this.getPortfolioEquityBTC() + this.getPortfolioTotalPLBTC();
+    }
+
+    /**
+     * Return the requested bars for instrument from start to stop in the increments designated by resolution as an array containing properties (high,low,open,close,time)
+     * @param instrument
+     * @param start
+     * @param stop
+     * @param resolution
+     * @returns {Promise<*|*[]>}
+     */
+    async getBars(instrument, start, stop, resolution) {
+        let date = new Date();
+        date.setTime(start);
+        let startUTC = date.toUTCString();
+        date.setTime(stop);
+        let stopUTC = date.toUTCString();
+        utils.log(`Getting Bars From: ${startUTC} - To: ${stopUTC}`);
+        return await this.deribitApi.get_tradingview_chart_data(instrument, start, stop, resolution)
+            .then(response => {
+
+                let bars = [];
+
+                if (!response.result) {
+                    utils.log(`Error Getting Bars from API No Results. Error: `, response.error);
+                    return bars;
+                }
+                const data = response.result;
+
+                //utils.log(`Get Bars Response`);
+                //utils.log(response);
+
+                let nodata = data.status === 'no_data';
+
+                if (data.status !== 'ok' && !nodata) {
+                    return bars;
+                }
 
 
+                let barsCount = nodata ? 0 : data.ticks.length;
+                //utils.log(`Get Bars Count: ${barsCount}`);
+
+                //let volumePresent = typeof data.cost != 'undefined';
+                let ohlPresent = typeof data.open != 'undefined';
+
+                for (let i = 0; i < barsCount; ++i) {
+                    let barValue = {
+                        time: data.ticks[i],
+                        close: data.close[i]
+                    };
+
+                    if (ohlPresent) {
+                        barValue.open = data.open[i];
+                        barValue.high = data.high[i];
+                        barValue.low = data.low[i];
+                    } else {
+                        barValue.open = barValue.high = barValue.low = barValue.close;
+                    }
+
+                    // Note: We dont care about volume. Less data to store
+                    //if (volumePresent) {
+                    //barValue.volume = data.cost[i];
+                    //}
+
+                    bars.push(barValue);
+
+                }
+                return bars;
+            })
+            .catch(async (error) => {
+                utils.log(`Error Getting Bars from API.`, error);
+                return [];
+            });
+    }
+
+    async getOpenOrders(instrument, type = "all") {
+        return await this.deribitApi.get_open_orders_by_instrument(instrument, type)
+            .catch((error) => {
+                utils.log(`getOpenOrders Error:`, error);
+                return {'result': []};
+            });
+    }
+
+    async getOpenStopOrders() {
+        return await this.getOpenOrders('stop_all')
+            .catch((error) => {
+                utils.log(`getStopOrders Error:`, error);
+                return {'result': []};
+            });
+    }
+
+    getPosition() {
+        return this.position;
+    }
+
+    async getInitialPosition(instrument) {
+        await this.deribitApi.getPosition(instrument)
+            .then((data) => {
+                if (data['result']) {
+                    this.position = data['result'];
+                } else {
+                    utils.log(`Using Default Position`);
+                    this.position = this.defaultPosition;
+                }
+            })
+            .catch((error) => {
+                utils.log(`Could not Get Initial Position Error:`, error);
+            });
+    }
+
+    getInstruments() {
+        return this.instruments;
+    }
+
+    getCurrentPriceStored(instrument) {
+        return (this.currentPriceMap.has(instrument)) ? this.currentPriceMap.get(instrument) : 0;
+    }
+
+    async getCurrentPriceLive(instrument) {
+        return await this.deribitApi.get_ticker(instrument)
+            .then((data) => {
+                if (data['result']) {
+                    return data['result']['mark_price'];
+                } else {
+                    return 0;
+                }
+
+                // utils.log(`Close Position(s) Result: ${JSON.stringify(data)}`);
+            })
+            .catch((error) => {
+                utils.log(`Could Not Get Current Price for ${instrument}`, error);
+            });
     }
 
     async setupPositionSubscriptions(instrument) {
@@ -152,39 +313,165 @@ class Deribit {
         await this.subscribeTicker(instrument);
     }
 
-    isLoggedIn() {
-        return this.deribitApi.authenticated;
-    }
+    async subscribePositionChanges(instrument) {
+        let channel = 'user.changes.' + instrument + '.100ms';
 
-    getPortfolioEquityBTC() {
-        return this.portfolio.equity;
-    }
-
-    getPortfolioTotalPLBTC() {
-        return this.portfolio.total_pl;
-    }
-
-
-    getAccountTotalBTC() {
-        return this.getPortfolioEquityBTC() + this.getPortfolioTotalPLBTC();
-    }
-
-
-    async getOpenOrders(instrument, type = "all") {
-        return await this.deribitApi.get_open_orders_by_instrument(instrument, type)
+        await this.deribitApi.subscribe('private', channel)
+            .then(() => {
+                    utils.log(`Subscribed To Channel: ${channel}`);
+                }
+            )
+            .then(() => {
+                this.deribitApi.on(channel, async (data) => {
+                    utils.log(`Data from channel: ${channel}: ${JSON.stringify(data)}`);
+                    if (data['positions']) {
+                        if (data['positions'][0]) {
+                            let position = data['positions'][0];
+                            this.position['leverage'] = (position['leverage']) ? position['leverage'] : this.position['leverage'];
+                            this.position['size'] = (position['size']) ? position['size'] : this.position['size'];
+                            this.position['floating_profit_loss'] = (position['floating_profit_loss']) ? position['floating_profit_loss'] : this.position['floating_profit_loss'];
+                            utils.log(`Position Update: ${JSON.stringify(this.position)}`);
+                        } else {
+                            utils.log(`No Positions Returned. Getting Directly.`);
+                            await this.getInitialPosition(instrument);
+                        }
+                    } else {
+                        utils.log(`No Position Change`);
+                    }
+                });
+            })
             .catch((error) => {
-                utils.log(`getOpenOrders Error:`, error);
-                return {'result': []};
+                utils.log(`Could Not Subscribe to Channel: ${channel}`, error);
+
             });
     }
 
+    async subscribePortfolioUpdates() {
+        let channel = 'user.portfolio.btc';
 
-    async getOpenStopOrders() {
-        return await this.getOpenOrders('stop_all')
+        await this.deribitApi.subscribe('private', channel)
+            .then(() => {
+                    utils.log(`Subscribed To Channel: ${channel}`);
+                }
+            )
+            .then(() => {
+                this.deribitApi.on(channel, (data) => {
+                    this.portfolio = data;
+                    //utils.log(`Portfolio Update: `, this.portfolio);
+                });
+            })
             .catch((error) => {
-                utils.log(`getStopOrders Error:`, error);
-                return {'result': []};
+                utils.log(`Could Not Subscribe Channel: ${channel}`, error);
+
             });
+
+    }
+
+    async subscribeBars(instrument, timeframe, onCallback) {
+        let channel = "chart.trades." + instrument + "." + timeframe;
+        await this.deribitApi.subscribe('private', channel)
+            .then(() => {
+                    utils.log(`Subscribed To Channel: ${channel}`);
+                }
+            ).then(() => {
+                this.deribitApi.on(channel, onCallback);
+            })
+            .catch((error) => {
+                utils.log(`Could Not Subscribe to Channel: ${channel}`, error);
+            });
+
+    }
+
+    async subscribeOrderUpdates(instrument, onCallback) {
+        let channel = 'user.orders.' + instrument + '.100ms';
+        await this.deribitApi.subscribe('private', channel)
+            .then(() => {
+                    utils.log(`Subscribed To Channel: ${channel}`);
+                }
+            ).then(() => {
+                this.deribitApi.on(channel, onCallback);
+            })
+            .catch((error) => {
+                utils.log(`Could Not Subscribe to Channel: ${channel}`, error);
+            });
+
+    }
+
+    /**
+     * Retrieves the account summary data and stores to portfolio property.
+     */
+    retrieveAccountSummary() {
+        (async () => {
+            await this.deribitApi.get_account_summary('BTC', true)
+                .then((data) => {
+                    if (data['result']) {
+                        this.portfolio = data['result'];
+                    }
+                    utils.log(`Account Summary Retrieved: ${JSON.stringify(this.portfolio)}`);
+                })
+                .catch((error) => {
+                    utils.log(`Could not get Account Summary Error:`, error);
+                });
+        })();
+    }
+
+    /**
+     * Retrieve the instruments available from the deribit api and store them to the instruments (map) property
+     */
+    retrieveAPIInstruments() {
+        this.instruments = new Map();
+        (async () => {
+            await this.deribitApi.get_instruments('BTC', 'future', false)
+                .then(async (data) => {
+                    //utils.log(`Data from deribitApi.get_instruments(): ${JSON.stringify(data)}`);
+                    if (data['result']) {
+                        for (let i = 0; i < data['result'].length; ++i) {
+                            let instrumentName = data['result'][i]['instrument_name'];
+                            //utils.log(`Instrument Name : ${instrumentName}`);
+                            let bookSummaryArray = await this.deribitApi.get_book_summary_by_instrument(instrumentName)
+                                .then((bookSummaryData) => {
+                                    if (bookSummaryData['result']) {
+                                        return bookSummaryData['result'][0];
+                                    }
+                                })
+                                .catch((error) => {
+                                    utils.log(`Could not get Book Summary Error:`, error.message);
+                                    return {'volume': 0, 'open_interest': 0};
+                                });
+                            //utils.log(`Instrument (${instrumentName}) Book Summary: ${JSON.stringify(bookSummaryArray)}`);
+                            this.instruments.set(instrumentName, bookSummaryArray);
+                        }
+                        //utils.log(`Instruments Retrieved: ${JSON.stringify([...this.instruments.entries()])}`);
+                    }
+                })
+                .catch((error) => {
+                    utils.log(`Could not get Instruments Error:`, error.message);
+                });
+        })();
+    }
+
+    async subscribeTicker(instrument) {
+        let channel = 'ticker.' + instrument + '.100ms';
+        if (!this.currentPriceMap.has(instrument)) {
+            await this.deribitApi.subscribe('private', channel)
+                .then(() => {
+                        utils.log(`Subscribed To Channel: ${channel}`);
+                    }
+                ).then(() => {
+                    this.deribitApi.on(channel, (data) => {
+                        if (data['mark_price']) {
+                            this.currentPriceMap.set(instrument, data['mark_price'])
+                        }
+                        //utils.log(`Portfolio Update: `, this.portfolio);
+                    });
+                })
+                .catch((error) => {
+                    utils.log(`Could Not Subscribe to Channel: ${channel}`, error);
+                });
+        } else {
+            utils.log(`Already Subscribed to ${channel}`);
+        }
+
     }
 
     async editStopOrder(orderId, orderSizeUSD, stopPrice) {
@@ -194,40 +481,23 @@ class Deribit {
             });
     }
 
-    getPosition() {
-        return this.position;
-    }
-
-
-    async getInitialPosition(instrument) {
-        await this.deribitApi.getPosition(instrument)
+    async closeOpenPosition(instrument) {
+        await this.deribitApi.close_position(instrument, 'market')
             .then((data) => {
-                if (data['result']) {
-                    this.position = data['result'];
-                }else{
-                    utils.log(`Using Default Position`);
-                    this.position = this.defaultPosition;
-                }
+                //utils.log(`Position(s) Closed`);
+                utils.log(`Close Position(s) Result: ${JSON.stringify(data)}`);
             })
             .catch((error) => {
-                utils.log(`Could not Get Initial Position Error:`, error);
+                utils.log(`Could Not Close Open Position`, error);
             });
     }
 
-    removePriceOption(orderOptions) {
-        let oArray = Object.entries(orderOptions);
-
-        return oArray.reduce(function (map, obj) {
-            let key = obj.shift();
-            let value = obj.shift();
-
-            if (key !== 'price') {
-                map[key] = value;
-            }
-            return map;
-        }, {});
+    async cancelByLabel(label) {
+        await this.deribitApi.cancel_order_by_label(label)
+            .catch((error) => {
+                utils.log(`Could Not Cancel By Label: ${label}`, error);
+            });
     }
-
 
     async placeOrder(instrument, orderType, orderSizeUSD, price, label = "tradingapp") {
 
@@ -299,275 +569,9 @@ class Deribit {
         }
     }
 
-    async getAccountSummary() {
-        await this.deribitApi.get_account_summary('BTC', true)
-            .then((data) => {
-                if (data['result']) {
-                    this.portfolio = data['result'];
-                }
-                utils.log(`Account Summary Retrieved: ${JSON.stringify(this.portfolio)}`);
-            })
-            .catch((error) => {
-                utils.log(`Could not get Account Summary Error:`, error);
-            });
+    isLoggedIn() {
+        return this.deribitApi.authenticated;
     }
-
-    async subscribePositionChanges(instrument) {
-        let channel = 'user.changes.' + instrument + '.100ms';
-
-        await this.deribitApi.subscribe('private', channel)
-            .then(() => {
-                    utils.log(`Subscribed To Channel: ${channel}`);
-                }
-            )
-            .then(() => {
-                this.deribitApi.on(channel, async (data) => {
-                    utils.log(`Data from channel: ${channel}: ${JSON.stringify(data)}`);
-                    if (data['positions']) {
-                        if (data['positions'][0]) {
-                            let position = data['positions'][0];
-                            this.position['leverage'] = (position['leverage']) ? position['leverage'] : this.position['leverage'];
-                            this.position['size'] = (position['size']) ? position['size'] : this.position['size'];
-                            this.position['floating_profit_loss'] = (position['floating_profit_loss']) ? position['floating_profit_loss'] : this.position['floating_profit_loss'];
-                            utils.log(`Position Update: ${JSON.stringify(this.position)}`);
-                        } else {
-                            utils.log(`No Positions Returned. Getting Directly.`);
-                            await this.getInitialPosition(instrument);
-                        }
-                    } else {
-                        utils.log(`No Position Change`);
-                    }
-                });
-            })
-            .catch((error) => {
-                utils.log(`Could Not Subscribe to Channel: ${channel}`, error);
-
-            });
-    }
-
-    async subscribePortfolioUpdates() {
-        let channel = 'user.portfolio.btc';
-
-        await this.deribitApi.subscribe('private', channel)
-            .then(() => {
-                    utils.log(`Subscribed To Channel: ${channel}`);
-                }
-            )
-            .then(() => {
-                this.deribitApi.on(channel, (data) => {
-                    this.portfolio = data;
-                    //utils.log(`Portfolio Update: `, this.portfolio);
-                });
-            })
-            .catch((error) => {
-                utils.log(`Could Not Subscribe Channel: ${channel}`, error);
-
-            });
-
-    }
-
-    async getBars(instrument, start, stop, resolution, tries = 3) {
-        let date = new Date();
-        date.setTime(start);
-        let startUTC = date.toUTCString();
-        date.setTime(stop);
-        let stopUTC = date.toUTCString();
-        utils.log(`Getting Bars From: ${startUTC} - To: ${stopUTC}`);
-        return await this.deribitApi.get_tradingview_chart_data(instrument, start, stop, resolution)
-            .then(response => {
-
-                let bars = [];
-
-                if (!response.result) {
-                    utils.log(`Error Getting Bars from API No Results. Error: `, response.error);
-                    return bars;
-                }
-                const data = response.result;
-
-                //utils.log(`Get Bars Response`);
-                //utils.log(response);
-
-                let nodata = data.status === 'no_data';
-
-                if (data.status !== 'ok' && !nodata) {
-                    return bars;
-                }
-
-
-                let barsCount = nodata ? 0 : data.ticks.length;
-                //utils.log(`Get Bars Count: ${barsCount}`);
-
-                //let volumePresent = typeof data.cost != 'undefined';
-                let ohlPresent = typeof data.open != 'undefined';
-
-                for (let i = 0; i < barsCount; ++i) {
-                    let barValue = {
-                        time: data.ticks[i],
-                        close: data.close[i]
-                    };
-
-                    if (ohlPresent) {
-                        barValue.open = data.open[i];
-                        barValue.high = data.high[i];
-                        barValue.low = data.low[i];
-                    } else {
-                        barValue.open = barValue.high = barValue.low = barValue.close;
-                    }
-
-                    // Note: We dont care about volume. Less data to store
-                    //if (volumePresent) {
-                    //barValue.volume = data.cost[i];
-                    //}
-
-                    bars.push(barValue);
-
-                }
-
-                return bars;
-            })
-            .catch(async (error) => {
-                utils.log(`Error Getting Bars from API.`, error);
-                let bars = [];
-                if (tries > 0) {
-                    await this.deribitApi.reconnect();
-                    bars = await this.getBars(start, stop, resolution, --tries)
-                        .catch((error) => {
-                                utils.log(`Error Getting Bars from API on Retry (${(4 - tries)}).`, error);
-                                return bars;
-                            }
-                        );
-                }
-                return bars;
-            });
-    }
-
-    async subscribeBars(instrument, timeframe, onCallback) {
-        let channel = "chart.trades." + instrument + "." + timeframe;
-        await this.deribitApi.subscribe('private', channel)
-            .then(() => {
-                    utils.log(`Subscribed To Channel: ${channel}`);
-                }
-            ).then(() => {
-                this.deribitApi.on(channel, onCallback);
-            })
-            .catch((error) => {
-                utils.log(`Could Not Subscribe to Channel: ${channel}`, error);
-            });
-
-    }
-
-    async subscribeOrderUpdates(instrument, onCallback) {
-        let channel = 'user.orders.' + instrument + '.100ms';
-        await this.deribitApi.subscribe('private', channel)
-            .then(() => {
-                    utils.log(`Subscribed To Channel: ${channel}`);
-                }
-            ).then(() => {
-                this.deribitApi.on(channel, onCallback);
-            })
-            .catch((error) => {
-                utils.log(`Could Not Subscribe to Channel: ${channel}`, error);
-            });
-
-    }
-
-    async cancelByLabel(label) {
-        await this.deribitApi.cancel_order_by_label(label)
-            .catch((error) => {
-                utils.log(`Could Not Cancel By Label: ${label}`, error);
-            });
-    }
-
-
-    async subscribeTicker(instrument) {
-        let channel = 'ticker.' + instrument + '.100ms';
-        if (!this.currentPriceMap.has(instrument)) {
-            await this.deribitApi.subscribe('private', channel)
-                .then(() => {
-                        utils.log(`Subscribed To Channel: ${channel}`);
-                    }
-                ).then(() => {
-                    this.deribitApi.on(channel, (data) => {
-                        if (data['mark_price']) {
-                            this.currentPriceMap.set(instrument, data['mark_price'])
-                        }
-                        //utils.log(`Portfolio Update: `, this.portfolio);
-                    });
-                })
-                .catch((error) => {
-                    utils.log(`Could Not Subscribe to Channel: ${channel}`, error);
-                });
-        } else {
-            utils.log(`Already Subscribed to ${channel}`);
-        }
-
-    }
-
-    getCurrentPriceStored(instrument) {
-        return (this.currentPriceMap.has(instrument)) ? this.currentPriceMap.get(instrument) : 0;
-    }
-
-    async getCurrentPriceLive(instrument) {
-        return await this.deribitApi.get_ticker(instrument)
-            .then((data) => {
-                if (data['result']) {
-                    return data['result']['mark_price'];
-                } else {
-                    return 0;
-                }
-
-                // utils.log(`Close Position(s) Result: ${JSON.stringify(data)}`);
-            })
-            .catch((error) => {
-                utils.log(`Could Not Get Current Price for ${instrument}`, error);
-            });
-    }
-
-    async closeOpenPosition(instrument) {
-        await this.deribitApi.close_position(instrument, 'market')
-            .then((data) => {
-                //utils.log(`Position(s) Closed`);
-                utils.log(`Close Position(s) Result: ${JSON.stringify(data)}`);
-            })
-            .catch((error) => {
-                utils.log(`Could Not Close Open Position`, error);
-            });
-    }
-
-    getInstruments() {
-        return this.instruments;
-    }
-
-    async getAPIInstruments() {
-        this.instruments = new Map();
-        await this.deribitApi.get_instruments('BTC', 'future', false)
-            .then(async (data) => {
-                //utils.log(`Data from deribitApi.get_instruments(): ${JSON.stringify(data)}`);
-                if (data['result']) {
-                    for (let i = 0; i < data['result'].length; ++i) {
-                        let instrumentName = data['result'][i]['instrument_name'];
-                        //utils.log(`Instrument Name : ${instrumentName}`);
-                        let bookSummaryArray = await this.deribitApi.get_book_summary_by_instrument(instrumentName)
-                            .then((bookSummaryData) => {
-                                if (bookSummaryData['result']) {
-                                    return bookSummaryData['result'][0];
-                                }
-                            })
-                            .catch((error) => {
-                                utils.log(`Could not get Book Summary Error:`, error.message);
-                                return {'volume': 0, 'open_interest': 0};
-                            });
-                        //utils.log(`Instrument (${instrumentName}) Book Summary: ${JSON.stringify(bookSummaryArray)}`);
-                        this.instruments.set(instrumentName, bookSummaryArray);
-                    }
-                    //utils.log(`Instruments Retrieved: ${JSON.stringify([...this.instruments.entries()])}`);
-                }
-            })
-            .catch((error) => {
-                utils.log(`Could not get Instruments Error:`, error.message);
-            });
-    }
-
 }
 
 module.exports = Deribit;
