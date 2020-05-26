@@ -2,7 +2,9 @@
  * Copyright (c) 2020. Christopher Queen Consulting LLC (http://www.ChristopherQueenConsulting.com/)
  */
 
-const ut = require('../src/utils');
+const utils = require('../src/utils');
+const ut = new utils('true');
+ut.setLogColor('#FFA500');
 
 describe.each([
     [2, 2020, 29],

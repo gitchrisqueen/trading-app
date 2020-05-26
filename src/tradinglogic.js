@@ -3,12 +3,15 @@
 */
 
 const dBit = require('./deribit.js');
+const tlUtils = new utils(true);
+tlUtils.setLogColor('#FFDF00');
+tlUtils.setScriptName('TradingLogic.js');
+
 
 // noinspection DuplicatedCode
 class TradingLogic {
 
     constructor() {
-        this.DEBUG = true;
         this.testRan = false;
 
         this.scriptName = '';
@@ -89,7 +92,6 @@ class TradingLogic {
         this.minOddsEnhancerScore = 7; // TODO: Keep stats and pick the lowest score with the highest win %. NOTE: Setting to 5 to see if we only take halfway good trades (Max OEScore is 10)
         this.minLeverage = 40;
         this.maxLeverage = 50;
-
 
         this.bracketOrder = this.getBracketOrderBlank();
         this.orders = new Map();
@@ -172,16 +174,16 @@ class TradingLogic {
         // remove the perpetual so it doesnt sort using it
         //instruments.delete('BTC-PERPETUAL');
 
-        //this.log(`Deribit Instruments: ${JSON.stringify([...instruments.entries()])}`);
+        //tlUtils.log(`Deribit Instruments: ${JSON.stringify([...instruments.entries()])}`);
         let instrumentsSorted = new Map([...instruments.entries()].sort(function ([, x], [, y]) {
             return (x['volume'] - y['volume'] || x['open_interest'] - y['open_interest']);
         }));
 
-        //this.log(`Instruments Sorted by Liquidity: ${JSON.stringify([...instrumentsSorted.entries()])}`);
+        //tlUtils.log(`Instruments Sorted by Liquidity: ${JSON.stringify([...instrumentsSorted.entries()])}`);
         let iMap = Array.from(instrumentsSorted.keys());
         let mostLiquidInstrument = iMap.pop();
 
-        this.log(`Most Liquid Instrument: ${mostLiquidInstrument}`);
+        tlUtils.log(`Most Liquid Instrument: ${mostLiquidInstrument}`);
 
         return mostLiquidInstrument;
     }
@@ -191,8 +193,7 @@ class TradingLogic {
      * @returns {Promise<void>}
      */
     async init() {
-        this.setScriptName(this.getScriptName());
-        this.log('Started');
+        tlUtils.log('Started');
         await this.Deribit.init();
 
         // Determine the Dated Contract that is most liquid (highest volume [more important] and open interest)
@@ -205,7 +206,7 @@ class TradingLogic {
         this.insturmentTimeframeMap.set(this.LTF, mostLiquidInstrument);
 
         // Setup the subscriptions for the instrument we will be executing trades on
-        this.Deribit.setupPositionSubscriptions(mostLiquidInstrument);
+        await this.Deribit.setupPositionSubscriptions(mostLiquidInstrument);
 
         // Get All Open Orders so they aren't duplicated if system restarts
         await this.trackAllOpenOrders();
@@ -255,7 +256,7 @@ class TradingLogic {
                     await this.handleOpenOrders();
                 }
             }).catch((error) => {
-                this.log(`subscribeBars() Error:`, error);
+                tlUtils.log(`subscribeBars() Error:`, error);
             });
 
         }
@@ -272,13 +273,13 @@ class TradingLogic {
             this.test5();
             this.testRan = true;
         } else {
-            this.log(`Test Have Run. Exiting Program`);
+            tlUtils.log(`Test Have Run. Exiting Program`);
             process.exit(1);
         }
     }
 
     async test1() {
-        this.log(`Test 1: Create a sell bracket order to be placed where the price is between target and entry`)
+        tlUtils.log(`Test 1: Create a sell bracket order to be placed where the price is between target and entry`)
         // Create a sell bracket order to be placed where the price is between target and entry
         let calculatedOddEnhancers = {
             freshness: 3,
@@ -299,7 +300,7 @@ class TradingLogic {
     }
 
     async test2() {
-        this.log(`Test 2: Create a buy bracket order to be placed where the price is between entry and stop`);
+        tlUtils.log(`Test 2: Create a buy bracket order to be placed where the price is between entry and stop`);
         // Create a buy bracket order to be placed where the price is between entry and stop
         let calculatedOddEnhancers = {
             freshness: 3,
@@ -320,7 +321,7 @@ class TradingLogic {
     }
 
     test3() {
-        this.log(`Test 3: Queue a sell entry bracket order to be placed where the price is between stop and entry`);
+        tlUtils.log(`Test 3: Queue a sell entry bracket order to be placed where the price is between stop and entry`);
         // Queue a sell bracket order to be placed where the price is between stop and entry
         let calculatedOddEnhancers = {
             freshness: 3,
@@ -340,7 +341,7 @@ class TradingLogic {
     }
 
     test4() {
-        this.log(`Test 4: Queue a buy bracket order to be placed where the price is between target and entry`);
+        tlUtils.log(`Test 4: Queue a buy bracket order to be placed where the price is between target and entry`);
         // Queue a buy bracket order to be placed where the price is between target and entry
         let calculatedOddEnhancers = {
             freshness: 3,
@@ -360,7 +361,7 @@ class TradingLogic {
     }
 
     test5() {
-        this.log(`Test 5: Queue a buy bracket order to be placed where the price is between target and entry but closer to the target`);
+        tlUtils.log(`Test 5: Queue a buy bracket order to be placed where the price is between target and entry but closer to the target`);
         // Queue a buy bracket order to be placed where the price is between target and entry but closer to the target
         let calculatedOddEnhancers = {
             freshness: 3,
@@ -386,14 +387,14 @@ class TradingLogic {
      */
     assessTimeFrame(timeframe) {
         // Map out the bases for the timeframe
-        this.log(`Mapping all Bases for Timeframe: ${timeframe}`);
+        tlUtils.log(`Mapping all Bases for Timeframe: ${timeframe}`);
         this.updateBaseMap(timeframe);
 
         // Need to setup New zoneMap for the timeframe
         this.zoneMap.set(timeframe, this.getZoneTypes());
 
         // Discover supply, demand, and fresh zones on every new zone
-        this.log(`Discovering all Zones for Timeframe: ${timeframe}`);
+        tlUtils.log(`Discovering all Zones for Timeframe: ${timeframe}`);
         this.discoverZones(timeframe);
 
     }
@@ -408,12 +409,12 @@ class TradingLogic {
             case this.HTF:
                 // Find the freshest supply and demand. Divide it into 3 parts. Draw Highlighted Curve zones. Determine place on curve
                 this.determineCurve();
-                this.log(`Curve: ${this.getCurve()}`);
+                tlUtils.log(`Curve: ${this.getCurve()}`);
                 break;
             case this.ITF:
                 // Determine Trend
                 this.determineTrend();
-                this.log(`Trend: ${this.getTrend()}`);
+                tlUtils.log(`Trend: ${this.getTrend()}`);
                 break;
             case this.LTF:
                 // Determine the trades to make
@@ -430,20 +431,9 @@ class TradingLogic {
      * @returns {{distal, proximal: number}|{distal, proximal}}
      */
     getZonePropertiesAdvanced(zone, timeframe) {
-        // TODO: Get properties from helper than add freshness to it
-
-
-        let currentPrice = this.getCurrentPrice(timeframe);
-        let min = this.getMinBaseBody(zone);
-        let max = this.getMaxBaseBody(zone);
-        let d1 = Math.abs(currentPrice - min);
-        let d2 = Math.abs(currentPrice - max);
-
-        let prop = (d1 < d2) ? {proximal: min, distal: max} : {proximal: max, distal: min};
-        prop['isFresh'] = this.isFreshZone(zone, timeframe);
-        prop['isSupply'] = prop.proximal > currentPrice;
-        prop['isDemand'] = prop.proximal < currentPrice;
-        return prop;
+        let zoneProperties = ch.getZoneProperties(zone, this.getCurrentPrice(timeframe));
+        zoneProperties['isFresh'] = this.isFreshZone(zone, timeframe);
+        return zoneProperties;
     }
 
     /**
@@ -465,12 +455,12 @@ class TradingLogic {
      */
     async trackAllOpenOrders() {
         this.orders = await this.getOpenOrdersAsBracketOrdersMap();
-        this.log(`Total Open Bracket Orders: ${this.orders.size}`);
+        tlUtils.log(`Total Open Bracket Orders: ${this.orders.size}`);
         let totalOrders = 0;
         for (const uid of this.orders.keys()) {
             totalOrders += this.orders.get(uid).size;
         }
-        this.log(`Total Open Orders: ${totalOrders}`);
+        tlUtils.log(`Total Open Orders: ${totalOrders}`);
     }
 
     /**
@@ -513,10 +503,10 @@ class TradingLogic {
      */
     getCurrentPrice(timeframe) {
         //let currentPrice =  this.getLastBar(timeframe).close;
-        let currentPrice = this.Deribit.getCurrentPriceStored(this.getInstrumentByTimeFrame(timeframe));
-        //this.log(`Current Price: ${currentPrice}`);
-        return currentPrice;
-
+        //let currentPrice = this.Deribit.getCurrentPriceStored(this.getInstrumentByTimeFrame(timeframe));
+        //tlUtils.log(`Current Price: ${currentPrice}`);
+        //return currentPrice;
+        return this.Deribit.getCurrentPriceStored(this.getInstrumentByTimeFrame(timeframe));
     }
 
     /**
@@ -527,7 +517,7 @@ class TradingLogic {
     getLastBar(timeframe) {
         let mapDesc = new Map([...this.barMap.get(timeframe).entries()].sort());
         let barsDesc = Array.from(mapDesc.values());
-        //this.log(`Last bar time: ${lastBar.time}`);
+        //tlUtils.log(`Last bar time: ${lastBar.time}`);
         return barsDesc.pop();
     }
 
@@ -539,7 +529,7 @@ class TradingLogic {
     getFirstBar(timeframe) {
         let mapDesc = new Map([...this.barMap.get(timeframe).entries()].sort());
         let barsDesc = Array.from(mapDesc.values());
-        //this.log(`First bar: ${firstBar.time}`);
+        //tlUtils.log(`First bar: ${firstBar.time}`);
         return barsDesc.shift();
     }
 
@@ -553,12 +543,12 @@ class TradingLogic {
         let currentPrice = this.getCurrentPrice(timeframe);
         let bases = this.getBasesTimeFrame(timeframe);
 
-        //this.log(`Bases Found: ${bases.length}`);
-        // this.log(`ZoneMap:`,this.zoneMap);
+        //tlUtils.log(`Bases Found: ${bases.length}`);
+        // tlUtils.log(`ZoneMap:`,this.zoneMap);
 
         // Discover each zone (Direction doesnt matter because we map on first base time and sort latter when needed
         for (const base of bases) {
-            //this.log(`Base:`,base);
+            //tlUtils.log(`Base:`,base);
 
             let baseTime = base[0].time;
 
@@ -573,24 +563,24 @@ class TradingLogic {
             //this.zoneMap.get(timeframe).freshdemand.delete(baseTime);
             //this.zoneMap.get(timeframe).freshsupply.delete(baseTime);
 
-            if (this.isSupply(base, currentPrice) === true) {
-                //this.log(`Found Supply`);
+            if (ch.isSupply(base, currentPrice) === true) {
+                //tlUtils.log(`Found Supply`);
 
                 this.zoneMap.get(timeframe).supply.set(baseTime, base);
                 //this.zoneMap.get(timeframe).demand.delete(baseTime);
                 if (isFresh) {
-                    //this.log(`Fresh Supply`);
+                    //tlUtils.log(`Fresh Supply`);
                     this.zoneMap.get(timeframe).freshsupply.set(baseTime, base);
                 } else {
                     //this.zoneMap.get(timeframe).freshsupply.delete(baseTime);
                 }
-            } else if (this.isDemand(base, currentPrice) === true) {
-                //this.log(`Found Demand`);
+            } else if (ch.isDemand(base, currentPrice) === true) {
+                //tlUtils.log(`Found Demand`);
 
                 this.zoneMap.get(timeframe).demand.set(baseTime, base);
                 //this.zoneMap.get(timeframe).supply.delete(baseTime);
                 if (isFresh) {
-                    //this.log(`Fresh Demand`);
+                    //tlUtils.log(`Fresh Demand`);
                     this.zoneMap.get(timeframe).freshdemand.set(baseTime, base);
                 } else {
                     //this.zoneMap.get(timeframe).freshdemand.delete(baseTime);
@@ -605,7 +595,7 @@ class TradingLogic {
      */
     updateBaseMap(timeframe) {
         //Dont delete bases. They dont change. Just update since last bar time
-        //this.log(`Updating BaseMap for Timeframe: ${timeframe}`);
+        //tlUtils.log(`Updating BaseMap for Timeframe: ${timeframe}`);
         let merged;
         if (this.baseMap.has(timeframe)) {
 
@@ -615,18 +605,18 @@ class TradingLogic {
 
             // Get bars from the last base time to now to add new basses
             let bars = this.getBarsMapped(timeframe, lastBaseTime);
-            //this.log(`Bars Count: ${bars.size}`);
+            //tlUtils.log(`Bars Count: ${bars.size}`);
 
-            let newBaseMap = this.discoverBasesFromBars(bars);
+            let newBaseMap = ch.discoverBasesFromBars(bars);
             merged = new Map([...currentBaseMap, ...newBaseMap]);
         } else {
             let bars = this.getBarsMapped(timeframe);
-            //this.log(`Bars Count: ${bars.size}`);
-            merged = this.discoverBasesFromBars(bars);
+            //tlUtils.log(`Bars Count: ${bars.size}`);
+            merged = ch.discoverBasesFromBars(bars);
         }
 
         this.baseMap.set(timeframe, merged);
-        //this.log(`Bases Found: ${merged.length}`);
+        //tlUtils.log(`Bases Found: ${merged.length}`);
 
     }
 
@@ -648,15 +638,15 @@ class TradingLogic {
         to = Math.min(Math.min(to, this.getLastBar(timeframe).time), Date.now());
 
         let bars = this.barMap.get(timeframe);
-        //this.log(`barMap(${timeframe}) has (${bars.size}) bars.`);
+        //tlUtils.log(`barMap(${timeframe}) has (${bars.size}) bars.`);
 
-        return new Map([...bars.entries()].sort().filter(([k, v]) => (from <= v.time && v.time <= to)));
+        return new Map([...bars.entries()].sort().filter(([, v]) => (from <= v.time && v.time <= to)));
     }
 
     async getAPIBars(timeframe, from = false, to = false) {
 
-        this.log(`Getting API Bars for Timeframe: ${timeframe}`);
-        let timeFrameInMinutes = this.getTimeFrameInMinutes(timeframe); // Minute(s)
+        tlUtils.log(`Getting API Bars for Timeframe: ${timeframe}`);
+        let timeFrameInMinutes = ut.getTimeFrameInMinutes(timeframe); // Minute(s)
         let timeFrameMinuteMultiplier = 1;
 
         // TODO: Need to adjust for higher timeframes ???
@@ -687,7 +677,7 @@ class TradingLogic {
         let fromUTC = date.toUTCString();
         date.setTime(to);
         let toUTC = date.toUTCString();
-        this.log(`Requesting Bars From: ${fromUTC} - To: ${toUTC}`);
+        tlUtils.log(`Requesting Bars From: ${fromUTC} - To: ${toUTC}`);
 
          */
 
@@ -701,7 +691,7 @@ class TradingLogic {
 
             await this.Deribit.getBars(instrument, i, nextTo, timeframe)
                 .then(bars => {
-                    //this.log(`getAllBars Found Count:`,bars.length);
+                    //tlUtils.log(`getAllBars Found Count:`,bars.length);
                     for (const bar of bars) {
                         //bar['status'] = 'data';
                         this.addBarToMap(timeframe, bar);
@@ -709,11 +699,11 @@ class TradingLogic {
                 });
         }
 
-        this.log(`Finished Getting API Bars for Timeframe: ${timeframe}`);
+        tlUtils.log(`Finished Getting API Bars for Timeframe: ${timeframe}`);
     }
 
     addBarToMap(timeframe, bar) {
-        //this.log(`Adding Bar`);
+        //tlUtils.log(`Adding Bar`);
         let map = this.barMap.get(timeframe);
         let newBarAdded = false;
         if (!map.has(bar.time)) {
@@ -728,10 +718,16 @@ class TradingLogic {
     removeFirstBarFromMap(timeframe) {
         let barsMapped = this.barMap.get(timeframe);
         let firstBar = Array.from(barsMapped.values()).shift();
-        //this.log(`Removing Bar: ${firstBar.time}`);
+        //tlUtils.log(`Removing Bar: ${firstBar.time}`);
         this.barMap.delete(firstBar.time);
     }
 
+    /**
+     * Add a bar to the barMap with the passed data
+     * @param timeframe
+     * @param data {{status:string,tick: number,close:number,open:number,high:number,low:number}}
+     * @returns {boolean}
+     */
     addSubscribedBarToMap(timeframe, data) {
         let bar;
         if (data.status !== 'no_data') {
@@ -755,8 +751,8 @@ class TradingLogic {
     getZoneTouchCount(zone, timeframe) {
         let lastZoneBar = zone[zone.length - 1];
         let lastZoneBarTime = lastZoneBar.time;
-        let zoneMin = this.getMinBaseLow(zone);
-        let zoneMax = this.getMaxBaseHigh(zone);
+        let zoneMin = ch.getMinBaseLow(zone);
+        let zoneMax = ch.getMaxBaseHigh(zone);
         let searchBars = this.getBarsMapped(timeframe, lastZoneBarTime);
 
         let inside;
@@ -766,7 +762,7 @@ class TradingLogic {
         let crosses = 0;
         let processFirstBar = true;
 
-        for (const [index, bar] of searchBars) {
+        for (const [, bar] of searchBars) {
             currentAbove = Math.max(bar.open, bar.close, bar.low, bar.high) > zoneMax;
             currentBelow = Math.min(bar.open, bar.close, bar.low, bar.high) < zoneMin;
             currentInside = !currentAbove && !currentBelow;
@@ -787,7 +783,7 @@ class TradingLogic {
 
     isFreshZone(zone, timeframe) {
         let crosses = this.getZoneTouchCount(zone, timeframe);
-        //this.log(`Crosses: ${crosses}`);
+        //tlUtils.log(`Crosses: ${crosses}`);
 
         let isFresh = true;
         if (crosses > 1) {
@@ -810,20 +806,24 @@ class TradingLogic {
 
 
         if (freshSupply !== false && freshDemand !== false) {
-            let supplyProximal = this.getSupplyProximalLine(freshSupply);
-            let demandProximal = this.getDemandProximalLine(freshDemand);
+            let freshSupplyZoneProperties = ch.getZoneProperties(freshSupply, this.getCurrentPrice(this.HTF));
+            let supplyProximal = freshSupplyZoneProperties['proximal'];
+            let supplyDistal = freshSupplyZoneProperties['distal'];
+            let freshDemandZoneProperties = ch.getZoneProperties(freshDemand, this.getCurrentPrice(this.HTF));
+            let demandProximal = freshDemandZoneProperties['proximal'];
+            let demandDistal = freshDemandZoneProperties['distal'];
             this.htfReward = Math.abs(supplyProximal - demandProximal);
             let htfDelta = this.getHTFReward() / 3;
             let equHigh = supplyProximal - htfDelta;
             let equLow = demandProximal + htfDelta;
-            let htfFrom = Math.min(freshSupply[0].time, freshDemand[0].time);
-            let htfTo = Math.max(freshSupply[freshSupply.length - 1].time, freshDemand[freshDemand.length - 1].time);
+            //let htfFrom = Math.min(freshSupply[0].time, freshDemand[0].time);
+            //let htfTo = Math.max(freshSupply[freshSupply.length - 1].time, freshDemand[freshDemand.length - 1].time);
 
             // Determine Risk - whatever zone is oldest there diff (proximal-distal) = risk
-            if (freshSupply[0].time < freshDemand[0].time) {
-                this.htfRisk = Math.abs(this.getSupplyDistalLine(freshSupply) - supplyProximal);
+            if (ch.getZoneTimeStampMilli(freshSupply) < ch.getZoneTimeStampMilli(freshDemand)) {
+                this.htfRisk = Math.abs(supplyDistal - supplyProximal);
             } else {
-                this.htfRisk = Math.abs(this.getDemandDistalLine(freshDemand) - demandProximal);
+                this.htfRisk = Math.abs(demandDistal - demandProximal);
             }
 
             let priceArray = [
@@ -836,17 +836,17 @@ class TradingLogic {
             let priceArraySorted = priceArray.sort((a, b) => (a.price < b.price) ? 1 : -1);
             let curvePlacementIndex = priceArraySorted.findIndex(item => item.type == "currentPrice");
 
-            //this.log(`[Chart] Price Array Sorted`);
-            //this.log(priceArraySorted);
-            //this.log(`[Chart] Placement: ${placement}`);
-            //this.log(priceArraySorted);
+            //tlUtils.log(`[Chart] Price Array Sorted`);
+            //tlUtils.log(priceArraySorted);
+            //tlUtils.log(`[Chart] Placement: ${placement}`);
+            //tlUtils.log(priceArraySorted);
 
             switch (curvePlacementIndex) {
                 case 1:
                     this.curve = this.curvePlacements.HIGH;
                     break;
                 default:
-                // Equilibrium is the default if we cant determing a curve
+                // Equilibrium is the default if we cant determine a curve
                 case 2:
                     this.curve = this.curvePlacements.EQUAL;
                     break;
@@ -855,7 +855,7 @@ class TradingLogic {
                     break;
             }
         } else {
-            this.log(`Cant determine curve without both supply and demand. Setting to EQUAL`);
+            tlUtils.log(`Cant determine curve without both supply and demand. Setting to EQUAL`);
             this.curve = this.curvePlacements.EQUAL;
         }
     }
@@ -869,7 +869,7 @@ class TradingLogic {
         let mapDesc = new Map([...this.zoneMap.get(timeframe).supply.entries()].sort());
         let supplyDesc = Array.from(mapDesc.values());
         let supply = supplyDesc.pop();
-        return (supply && supply.length >= this.baseMinSize) ? supply : false;
+        return (supply) ? supply : false;
     }
 
     // noinspection DuplicatedCode
@@ -881,7 +881,7 @@ class TradingLogic {
         let mapDesc = new Map([...this.zoneMap.get(timeframe).freshsupply.entries()].sort());
         let supplyDesc = Array.from(mapDesc.values());
         let freshSupply = supplyDesc.pop();
-        return (freshSupply && freshSupply.length >= this.baseMinSize) ? freshSupply : false;
+        return (freshSupply) ? freshSupply : false;
     }
 
     // noinspection DuplicatedCode
@@ -893,7 +893,7 @@ class TradingLogic {
         let mapDesc = new Map([...this.zoneMap.get(timeframe).demand.entries()].sort());
         let demandDesc = Array.from(mapDesc.values());
         let demand = demandDesc.pop();
-        return (demand && demand.length >= this.baseMinSize) ? demand : false;
+        return (demand) ? demand : false;
     }
 
     // noinspection DuplicatedCode
@@ -905,8 +905,16 @@ class TradingLogic {
         let mapDesc = new Map([...this.zoneMap.get(timeframe).freshdemand.entries()].sort());
         let demandDesc = Array.from(mapDesc.values());
         let freshDemand = demandDesc.pop();
-        return (freshDemand && freshDemand.length >= this.baseMinSize) ? freshDemand : false;
+        return (freshDemand) ? freshDemand : false;
 
+    }
+
+    getOpposingZone(timeframe, zone) {
+        if (ch.isDemand(zone, this.getCurrentPrice(timeframe))) {
+            return this.getOpposingSupplyZone(timeframe, zone);
+        } else {
+            return this.getOpposingDemandZone(timeframe, zone);
+        }
     }
 
     // noinspection DuplicatedCode
@@ -922,7 +930,7 @@ class TradingLogic {
             do {
                 demand = demandDesc.pop();
             } while (demandDesc.length > 0 && demand[0].time >= zoneFirstTime);
-            //this.log(`Opposing Demand: ${zoneFirstTime}`, demand);
+            //tlUtils.log(`Opposing Demand: ${zoneFirstTime}`, demand);
         }
         return demand;
     }
@@ -940,7 +948,7 @@ class TradingLogic {
             do {
                 supply = supplyDesc.pop();
             } while (supplyDesc.length > 0 && supply[0].time >= zoneFirstTime);
-            //this.log(`Opposing Supply: ${zoneFirstTime}`, supply);
+            //tlUtils.log(`Opposing Supply: ${zoneFirstTime}`, supply);
         }
         return supply;
 
@@ -951,8 +959,8 @@ class TradingLogic {
     }
 
     determineTrend() {
-        let pivotSize = (this.getTimeFrameInMinutes(this.HTF) / this.getTimeFrameInMinutes(this.ITF)) - 1;
-        //this.log(`Pivot Size: ${pivotSize}`);
+        let pivotSize = (ut.getTimeFrameInMinutes(this.HTF) / ut.getTimeFrameInMinutes(this.ITF)) - 1;
+        //tlUtils.log(`Pivot Size: ${pivotSize}`);
         // Find 2 pivot highs and 2 pivot lows
         let pivotHighs = [];
         let pivotLows = [];
@@ -964,7 +972,7 @@ class TradingLogic {
 
         for (let i = 0; i < allBars.length; i++) {
             let rBar = allBars[allBars.length - 1 - i];
-            //this.log(`RBar :`,rBar);
+            //tlUtils.log(`RBar :`,rBar);
             barRange.unshift(rBar);
             if (barRange.length > barRangeMaxLength) {
                 barRange.pop();
@@ -972,21 +980,21 @@ class TradingLogic {
 
             if (barRange.length === barRangeMaxLength) {
 
-                //this.log(`Bar Range Length: ${barRange.length}`);
-                //this.log(`Bar Mid Range Index: ${barMidRangeIndex}`);
-                //this.log(`Bar Range :`);
-                //this.log(barRange);
+                //tlUtils.log(`Bar Range Length: ${barRange.length}`);
+                //tlUtils.log(`Bar Mid Range Index: ${barMidRangeIndex}`);
+                //tlUtils.log(`Bar Range :`);
+                //tlUtils.log(barRange);
 
                 // Is Pivot High
-                let barRangeHigh = this.getMaxBaseHigh(barRange);
+                let barRangeHigh = ch.getMaxBaseHigh(barRange);
                 if (barRangeHigh === barRange[barMidRangeIndex].high && pivotHighs.length < 2) {
-                    //this.log('Found Pivot High');
+                    //tlUtils.log('Found Pivot High');
                     pivotHighs.unshift(barRange[barMidRangeIndex]);
                 }
                 // Is Pivot Low
-                let barRangeLow = this.getMinBaseLow(barRange);
+                let barRangeLow = ch.getMinBaseLow(barRange);
                 if (barRangeLow === barRange[barMidRangeIndex].low && pivotLows.length < 2) {
-                    //this.log('Found Pivot Low');
+                    //tlUtils.log('Found Pivot Low');
                     pivotLows.unshift(barRange[barMidRangeIndex]);
                 }
             }
@@ -1002,7 +1010,7 @@ class TradingLogic {
             let HH = pivotHighs[0].high < pivotHighs[1].high;
             let LL = pivotLows[0].low > pivotLows[1].low;
             let LH = pivotHighs[0].high > pivotHighs[1].high;
-            this.log(`HL = ${HL} | HH = ${HH} | LL = ${LL} | LH = ${LH}`);
+            tlUtils.log(`HL = ${HL} | HH = ${HH} | LL = ${LL} | LH = ${LH}`);
 
             this.trend = this.trends.SIDEWAYS;
             if (HL) {
@@ -1028,8 +1036,32 @@ class TradingLogic {
         }
     }
 
+    getTradeOrder(zone, timeframe) {
+        let tradeOrder = false;
+        let zoneProperties = ch.getZoneProperties(zone, this.getCurrentPrice((timeframe)));
+        let entryZoneTimeStampMilli = ch.getZoneTimeStampMilli(zone);
+        let stop = zoneProperties['distal'];
+        let entry = zoneProperties['proximal'];
+        let risk = Math.abs(entry - stop);
+        if (risk !== 0) {
+            let opposingZone = this.getOpposingZone(timeframe, zone);
+            if (opposingZone) {
+                let opposingZoneProperties = ch.getZoneProperties(opposingZone, this.getCurrentPrice((timeframe)));
+                let target = opposingZoneProperties['proximal'];
+                let targetZoneTimeStampMilli = ch.getZoneTimeStampMilli(opposingZone);
+                let calculatedOddEnhancers = this.getOddEnhancers(opposingZone, timeframe); // TODO: Should this be on the opposing zone or the target entry zone
+                tradeOrder = {
+                    'bracketOrder': this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers),
+                    'entryZoneTimeStampMilli': entryZoneTimeStampMilli,
+                    'targetZoneTimeStampMilli': targetZoneTimeStampMilli
+                };
+            }
+        }
+        return tradeOrder;
+    }
+
     determineTrades() {
-        this.log(`Determining Trades`);
+        tlUtils.log(`Determining Trades`);
 
         if (this.curve == this.curvePlacements.UNKOWN) {
             throw new Error("Curve is not known");
@@ -1039,22 +1071,19 @@ class TradingLogic {
             throw new Error("Trend is not known");
         }
 
-        let tradeOrders = [], stop, entry, target;
-        let calculatedOddEnhancers;
-        let targetZoneTimeStampMili = Date.now();
-        let entryZoneTimeStampMili = Date.now();
+        let tradeOrders = [], tmpTradeOrder = false;
 
         // Get Fresh Supply
         let supplyLTF = this.getLatestSupplyTimeFrame(this.LTF);
         let supplyITF = this.getLatestSupplyTimeFrame(this.ITF);
-        //this.log(`Latest LTF Supply: `, supplyLTF);
-        //this.log(`Latest ITF Supply: `, supplyITF);
+        //tlUtils.log(`Latest LTF Supply: `, supplyLTF);
+        //tlUtils.log(`Latest ITF Supply: `, supplyITF);
 
         // Get Fresh Demands
         let demandLTF = this.getLatestDemandTimeFrame(this.LTF);
         let demandITF = this.getLatestDemandTimeFrame(this.ITF);
-        //this.log(`Latest LTF Demand: `, demandLTF)
-        // //this.log(`Latest ITF Demand: `, demandITF);
+        //tlUtils.log(`Latest LTF Demand: `, demandLTF)
+        // //tlUtils.log(`Latest ITF Demand: `, demandITF);
 
         // Look at curve, then trend, then what type of order based on supply or demand zones
         switch (this.curve) {
@@ -1066,45 +1095,16 @@ class TradingLogic {
                     case this.trends.UP:
                     case this.trends.STRONGUP:
                         // Sell in big picture supply
-                        if (supplyITF) {
-                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(supplyITF);
-                            stop = this.getSupplyDistalLine(supplyITF);
-                            entry = this.getSupplyProximalLine(supplyITF);
-                            let risk = Math.abs(entry - stop);
-                            if (risk == 0) {
-                                break;
-                            }
-
-                            let opposingDemandZone = this.getOpposingDemandZone(this.ITF, supplyITF);
-                            if (opposingDemandZone) {
-                                target = this.getDemandProximalLine(opposingDemandZone);
-                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingDemandZone);
-                                calculatedOddEnhancers = this.getOddEnhancers(supplyITF, this.ITF);
-                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers));
-                            }
+                        if (supplyITF && (tmpTradeOrder = this.getTradeOrder(supplyITF, this.ITF)) !== false) {
+                            tradeOrders.push(tmpTradeOrder);
                         }
                         break;
                     case this.trends.SIDEWAYS:
                     case this.trends.DOWN:
                     case this.trends.STRONGDOWN:
                         //wait for pullback to smaller timeframe supply zone to sell
-
-                        if (supplyLTF) {
-                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(supplyLTF);
-                            stop = this.getSupplyDistalLine(supplyLTF);
-                            entry = this.getSupplyProximalLine(supplyLTF);
-                            let risk = Math.abs(entry - stop);
-                            if (risk == 0) {
-                                break;
-                            }
-
-                            let opposingDemandZone = this.getOpposingDemandZone(this.LTF, supplyLTF);
-                            if (opposingDemandZone) {
-                                target = this.getDemandProximalLine(opposingDemandZone);
-                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingDemandZone);
-                                calculatedOddEnhancers = this.getOddEnhancers(supplyLTF, this.LTF);
-                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers));
-                            }
+                        if (supplyLTF && (tmpTradeOrder = this.getTradeOrder(supplyLTF, this.LTF)) !== false) {
+                            tradeOrders.push(tmpTradeOrder);
                         }
                         break;
                 }
@@ -1116,86 +1116,26 @@ class TradingLogic {
                     case this.trends.UP:
                     case this.trends.STRONGUP:
                         // Wait for pull back to smaller timeframe  demand to buy
-
-                        if (demandLTF) {
-                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(demandLTF);
-                            stop = this.getDemandDistalLine(demandLTF);
-                            entry = this.getDemandProximalLine(demandLTF);
-                            let risk = Math.abs(entry - stop);
-                            if (risk == 0) {
-                                break;
-                            }
-
-                            let opposingSupplyZone = this.getOpposingSupplyZone(this.LTF, demandLTF);
-                            if (opposingSupplyZone) {
-                                target = this.getSupplyProximalLine(opposingSupplyZone);
-                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingSupplyZone);
-                                calculatedOddEnhancers = this.getOddEnhancers(demandLTF, this.LTF);
-                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target, calculatedOddEnhancers));
-                            }
+                        if (demandLTF && (tmpTradeOrder = this.getTradeOrder(demandLTF, this.LTF)) !== false) {
+                            tradeOrders.push(tmpTradeOrder);
                         }
                         break;
                     case this.trends.SIDEWAYS:
                         // Sell in a LTF Supply or Buy in a LTF Demand
-
-                        if (demandLTF) {
-                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(demandLTF);
-                            stop = this.getDemandDistalLine(demandLTF);
-                            entry = this.getDemandProximalLine(demandLTF);
-                            let risk = Math.abs(entry - stop);
-                            if (risk == 0) {
-                                break;
-                            }
-
-                            let opposingSupplyZone = this.getOpposingSupplyZone(this.LTF, demandLTF);
-                            if (opposingSupplyZone) {
-                                target = this.getSupplyProximalLine(opposingSupplyZone);
-                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingSupplyZone);
-                                calculatedOddEnhancers = this.getOddEnhancers(demandLTF, this.LTF);
-                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target, calculatedOddEnhancers));
-                            }
+                        if (demandLTF && (tmpTradeOrder = this.getTradeOrder(demandLTF, this.LTF)) !== false) {
+                            tradeOrders.push(tmpTradeOrder);
                         }
-                        if (supplyLTF) {
-                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(supplyLTF);
-                            stop = this.getSupplyDistalLine(supplyLTF);
-                            entry = this.getSupplyProximalLine(supplyLTF);
-                            let risk = Math.abs(entry - stop);
-                            if (risk == 0) {
-                                break;
-                            }
-
-                            let opposingDemandZone = this.getOpposingDemandZone(this.LTF, supplyLTF);
-                            if (opposingDemandZone) {
-                                target = this.getDemandProximalLine(opposingDemandZone);
-                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingDemandZone);
-                                calculatedOddEnhancers = this.getOddEnhancers(supplyLTF, this.LTF);
-                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers));
-                            }
+                        if (supplyLTF && (tmpTradeOrder = this.getTradeOrder(supplyLTF, this.LTF)) !== false) {
+                            tradeOrders.push(tmpTradeOrder);
                         }
                         break;
                     case this.trends.DOWN:
                     case this.trends.STRONGDOWN:
                         //Wait for pull back to smaller timeframe supply to sell
-
-                        if (supplyLTF) {
-                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(supplyLTF);
-                            stop = this.getSupplyDistalLine(supplyLTF);
-                            entry = this.getSupplyProximalLine(supplyLTF);
-                            let risk = Math.abs(entry - stop);
-                            if (risk == 0) {
-                                break;
-                            }
-
-                            let opposingDemandZone = this.getOpposingDemandZone(this.LTF, supplyLTF);
-                            if (opposingDemandZone) {
-                                target = this.getDemandProximalLine(opposingDemandZone);
-                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingDemandZone);
-                                calculatedOddEnhancers = this.getOddEnhancers(supplyLTF, this.LTF);
-                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers));
-                            }
+                        if (supplyLTF && (tmpTradeOrder = this.getTradeOrder(supplyLTF, this.LTF)) !== false) {
+                            tradeOrders.push(tmpTradeOrder);
                         }
                 }
-
                 break;
             case this.curvePlacements.LOW:
                 // "Low On Curve" - Buy in big picture demand or wait for pullback to smaller timeframe demand zone to buy
@@ -1205,45 +1145,15 @@ class TradingLogic {
                     case this.trends.STRONGUP:
                     case this.trends.SIDEWAYS:
                         //Wait for pullback to smaller timeframe demand zone to buy
-
-                        if (demandLTF) {
-                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(demandLTF);
-                            stop = this.getDemandDistalLine(demandLTF);
-                            entry = this.getDemandProximalLine(demandLTF);
-                            let risk = Math.abs(entry - stop);
-                            if (risk == 0) {
-                                break;
-                            }
-
-                            let opposingSupplyZone = this.getOpposingSupplyZone(this.LTF, demandLTF);
-                            if (opposingSupplyZone) {
-                                target = this.getSupplyProximalLine(opposingSupplyZone);
-                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingSupplyZone);
-                                calculatedOddEnhancers = this.getOddEnhancers(demandLTF, this.LTF);
-                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target, calculatedOddEnhancers));
-                            }
+                        if (demandLTF && (tmpTradeOrder = this.getTradeOrder(demandLTF, this.LTF)) !== false) {
+                            tradeOrders.push(tmpTradeOrder);
                         }
                         break;
                     case this.trends.DOWN:
                     case this.trends.STRONGDOWN:
                         //Buy in big picture demand
-
-                        if (demandITF) {
-                            entryZoneTimeStampMili = this.getZoneTimeStampMilli(demandITF);
-                            stop = this.getDemandDistalLine(demandITF);
-                            entry = this.getDemandProximalLine(demandITF);
-                            let risk = Math.abs(entry - stop);
-                            if (risk == 0) {
-                                break;
-                            }
-
-                            let opposingSupplyZone = this.getOpposingSupplyZone(this.ITF, demandITF);
-                            if (opposingSupplyZone) {
-                                target = this.getSupplyProximalLine(opposingSupplyZone);
-                                targetZoneTimeStampMili = this.getZoneTimeStampMilli(opposingSupplyZone);
-                                calculatedOddEnhancers = this.getOddEnhancers(demandITF, this.ITF);
-                                tradeOrders.push(this.createCompleteBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target, calculatedOddEnhancers));
-                            }
+                        if (demandITF && (tmpTradeOrder = this.getTradeOrder(demandITF, this.ITF)) !== false) {
+                            tradeOrders.push(tmpTradeOrder);
                         }
                         break;
                 }
@@ -1251,12 +1161,15 @@ class TradingLogic {
             default:
                 // do nothing
                 break;
-
         }
 
-        for (let bracketOrder of tradeOrders) {
+        for (let tOrder of tradeOrders) {
 
-            // Order target must have atleast 3:1 Reward to Risk ratio
+            let targetZoneTimeStampMilli = tOrder['targetZoneTimeStampMilli'];
+            let entryZoneTimeStampMilli = tOrder['entryZoneTimeStampMilli'];
+            let bracketOrder = tOrder['bracketOrder'];
+
+            // Order target must have at least 3:1 Reward to Risk ratio
             let rr = this.getBORRratio(bracketOrder);
             // Determine if the order has acceptable oddEnhancerScore
             let oeScoreTotal = this.getBracketOrderOddsEnhancerScore(bracketOrder);
@@ -1265,20 +1178,20 @@ class TradingLogic {
 
                 if (oeScoreTotal >= this.minOddsEnhancerScore) {
 
-                    this.queueOrder(bracketOrder, targetZoneTimeStampMili, entryZoneTimeStampMili);
+                    this.queueOrder(bracketOrder, targetZoneTimeStampMilli, entryZoneTimeStampMilli);
 
                 } else {
-                    this.log(`Didnt place order. R:R (${rr})| oeScore: ${oeScoreTotal}| OE: ${JSON.stringify(bracketOrder.oddsEnhancer)} | Score was too low`);
+                    tlUtils.log(`Didnt place order. R:R (${rr})| oeScore: ${oeScoreTotal}| OE: ${JSON.stringify(bracketOrder.oddsEnhancer)} | Score was too low`);
                 }
             } else {
-                this.log(`Didnt place order. R:R (${rr})| oeScore: ${oeScoreTotal}| OE: ${JSON.stringify(bracketOrder.oddsEnhancer)} | RR was too low`);
+                tlUtils.log(`Didnt place order. R:R (${rr})| oeScore: ${oeScoreTotal}| OE: ${JSON.stringify(bracketOrder.oddsEnhancer)} | RR was too low`);
             }
         }
 
     }
 
     getOddEnhancers(zoneLTF, timeframe) {
-        //this.log(`[TradingLocig.js] zoneLTF: `, zoneLTF);
+        //tlUtils.log(`[TradingLocig.js] zoneLTF: `, zoneLTF);
 
         // Calculate Freshness
         let freshnessCount = this.getZoneTouchCount(zoneLTF, timeframe);
@@ -1289,7 +1202,7 @@ class TradingLogic {
         let strengthLTF = 0;
         if (legs) {
 
-            //this.log(`[TradingLocig.js] legs: `, legs);
+            //tlUtils.log(`[TradingLocig.js] legs: `, legs);
             let legStart = legs[0];
             let legEnd = legs[legs.length - 1];
             let strengthHeight = Math.max(legStart.high, legEnd.low) - Math.min(legStart.low, legEnd.low);
@@ -1317,11 +1230,11 @@ class TradingLogic {
         let lastZoneBar = zone[zone.length - 1];
         let lastZoneBarTime = lastZoneBar.time;
         let allBars = this.getBars(timeframe, lastZoneBarTime);
-        //this.log(`getLegsOut| Timeframe: ${timeframe} | allBars ${allBars.length}`);
+        //tlUtils.log(`getLegsOut| Timeframe: ${timeframe} | allBars ${allBars.length}`);
 
         let legs = [];
         for (let bar of allBars) {
-            if (this.isExcitingBar(bar)) {
+            if (ch.isExcitingBar(bar)) {
                 legs.push(bar);
             } else if (legs.length > 0) {
                 break;
@@ -1425,11 +1338,11 @@ class TradingLogic {
         let targetZoneTimeStamp = targetZoneTimeStampMilli / 1000;
         let entryZoneTimeStamp = entryZoneTimeStampMilli / 1000;
 
-        //this.log(`Risk: ${risk}`);
+        //tlUtils.log(`Risk: ${risk}`);
         // Set the trade size
         let uid = `S:${sp}|E:${ep}|T:${tp}|${targetZoneTimeStamp}|${entryZoneTimeStamp}`;
         if (uid.length + 7 > 64) { // Add 7 for the '|' + index concat
-            this.log(`!!! WARNING !!! UID char length (${uid.length}) is greater than 64`)
+            tlUtils.log(`!!! WARNING !!! UID char length (${uid.length}) is greater than 64`)
         }
         //let uid = `${targetZoneTimeStamp}|${entryZoneTimeStamp}`;
         //let uid = `${sp}${ep}${tp}${targetZoneTimeStamp}${entryZoneTimeStamp}`;
@@ -1447,14 +1360,14 @@ class TradingLogic {
         if (!this.ordersQueue.has(uid)) {
             this.ordersQueue.set(uid, bracketOrder);
         } else {
-            //this.log(`Bracket Order (${uid}) Already Queue'd`);
+            //tlUtils.log(`Bracket Order (${uid}) Already Queue'd`);
         }
     }
 
     async placeQueuedBracketOrders() {
         //TODO: Make these pull from a database
 
-        this.log(`Queued Bracket Orders: ${this.ordersQueue.size}`);
+        tlUtils.log(`Queued Bracket Orders: ${this.ordersQueue.size}`);
 
         for (let [uid, bracketOrder] of this.ordersQueue) {
             let currentPrice = this.getCurrentPrice(this.LTF);
@@ -1465,8 +1378,8 @@ class TradingLogic {
             //TODO: Determine if the potential profit is not wiped out by the fees and if so remove the queued order
 
             // If price is between stop and entry than change entry to "stop_market type" and place order
-            if (this.btw(currentPrice, bracketOrder.stop.price, bracketOrder.entry.price, false)) {
-                this.log(`Order ${bracketOrder.entry.orderType}| UID: ${uid} | Entry Changed to Stop Market Entry | Current Price: ${currentPrice}`);
+            if (ut.btw(currentPrice, bracketOrder.stop.price, bracketOrder.entry.price, false)) {
+                tlUtils.log(`Order ${bracketOrder.entry.orderType}| UID: ${uid} | Entry Changed to Stop Market Entry | Current Price: ${currentPrice}`);
                 if (bracketOrder.entry.orderType.includes("buy")) {
                     bracketOrder.entry.orderType = this.Deribit.getOrderTypes().buystopmarket;
                 } else {
@@ -1476,7 +1389,7 @@ class TradingLogic {
 
                 // If price is between entry and less than 50% toward target place order
             } else if (priceDelta <= (reward * (1 / 3))) {
-                this.log(`Order ${bracketOrder.entry.orderType}| UID: ${uid} | Entry Changed to Limit Entry | Current Price: ${currentPrice}`);
+                tlUtils.log(`Order ${bracketOrder.entry.orderType}| UID: ${uid} | Entry Changed to Limit Entry | Current Price: ${currentPrice}`);
                 // Change to proper order type in case it was changed before
                 if (bracketOrder.entry.orderType.includes("buy")) {
                     bracketOrder.entry.orderType = this.Deribit.getOrderTypes().buylimit;
@@ -1488,11 +1401,11 @@ class TradingLogic {
             if (orderReady) {
                 let placed = await this.placeBracketOrder(uid, bracketOrder);
                 if (placed) {
-                    this.log(`Order UID: ${uid} | Removed from Queue`);
+                    tlUtils.log(`Order UID: ${uid} | Removed from Queue`);
                     this.ordersQueue.delete(uid);
                 }
             } else {
-                this.log(`Order UID: ${uid} | Not ready to be placed`);
+                tlUtils.log(`Order UID: ${uid} | Not ready to be placed`);
             }
         }
     }
@@ -1508,11 +1421,11 @@ class TradingLogic {
         //bracketOrder.tradeSize = this.getTradeSize(this.getRiskInTicks(risk)); // Not using leveraged multiplier
 
         if (bracketOrder.tradeSize == 0 || !isFinite(bracketOrder.tradeSize)) {
-            this.log(`Will not place order with 0 or infinity +/- value. | Determined Trade Size: ${bracketOrder.tradeSize}`);
+            tlUtils.log(`Will not place order with 0 or infinity +/- value. | Determined Trade Size: ${bracketOrder.tradeSize}`);
             return false;
         }
 
-        this.log(`Placing Order. R:R (${rewardRisk})| OE: ${oeScore} | UID: ${uid} | Order Size: ${bracketOrder.tradeSize}`);
+        tlUtils.log(`Placing Order. R:R (${rewardRisk})| OE: ${oeScore} | UID: ${uid} | Order Size: ${bracketOrder.tradeSize}`);
 
         let promises = [];
         promises.push(this.getOrderPromise(bracketOrder.stop, uid, 'stop', bracketOrder.tradeSize));
@@ -1521,12 +1434,12 @@ class TradingLogic {
 
         await Promise.all(promises)
             .then((responses) => {
-                //responses.map(response => this.log(`Promise Response: ` + response));
-                this.log(`Bracket Order Placed. R:R (${rewardRisk})| OE: ${oeScore} | UID: ${uid} | Order Size: ${bracketOrder.tradeSize}`);
+                //responses.map(response => tlUtils.log(`Promise Response: ` + response));
+                tlUtils.log(`Bracket Order Placed. R:R (${rewardRisk})| OE: ${oeScore} | UID: ${uid} | Order Size: ${bracketOrder.tradeSize}`);
             })
             .catch(async (e) => {
                 // Cancel all if one fails
-                this.log(`Order UID: ${uid} | Failed to place. Closing other bracket order | Error: `, e);
+                tlUtils.log(`Order UID: ${uid} | Failed to place. Closing other bracket order | Error: `, e);
                 await this.closeBracket(uid + '|stop', uid + '|target', uid + '|entry')
                 return false;
             });
@@ -1541,7 +1454,7 @@ class TradingLogic {
                     resolve(`Order ${uid}|${index} | Promised Resolved | ${result}`);
                 })
                 .catch((error) => {
-                    this.log(error.message);
+                    tlUtils.log(error.message);
                     reject('Order ' + uid + '|' + index + ' | Promised Rejected');
                 });
         });
@@ -1610,7 +1523,7 @@ class TradingLogic {
                 return bracketOrderMap;
             })
             .catch((error) => {
-                this.log(`Error Getting Open Orders As BracketOrderMap:`, error);
+                tlUtils.log(`Error Getting Open Orders As BracketOrderMap:`, error);
                 return new Map();
             });
 
@@ -1620,50 +1533,50 @@ class TradingLogic {
         this.orders = await this.getOpenOrdersAsBracketOrdersMap();
 
         if (this.orders.size == 0) {
-            this.log(`No Open Orders.`);
+            tlUtils.log(`No Open Orders.`);
             let position = this.Deribit.getPosition();
-            //this.log(`Position: ${JSON.stringify(position)}`);
-            let positionSize = parseFloat(position['size']);
-            let floating_profit_loss = parseFloat(position['floating_profit_loss']);
+            //tlUtils.log(`Position: ${JSON.stringify(position)}`);
+            let positionSize = parseFloat(position['size'] + '');
+            let floating_profit_loss = parseFloat(position['floating_profit_loss'] + '');
 
             //TODO: Determine if this is a good idea or not ?!?!?
             // If there are no open orders then close any open position
 
             if (positionSize == 0) {
-                this.log(`No Open Position(s)`);
+                tlUtils.log(`No Open Position(s)`);
             } else if (floating_profit_loss > 0) {
                 // Close when profit/loss is positive
-                this.log(`Closing Open Position(s)`);
+                tlUtils.log(`Closing Open Position(s)`);
                 await this.Deribit.closeOpenPosition(this.getInstrumentByTimeFrame(this.LTF))
                     .catch((error) => {
-                        this.log(`Error Closing Position While Handling Open Orders`, error);
+                        tlUtils.log(`Error Closing Position While Handling Open Orders`, error);
                     });
             } else {
-                this.log(`Waiting for positive profit on position to close`);
+                tlUtils.log(`Waiting for positive profit on position to close`);
             }
 
         } else {
-            this.log(`Handling Open Bracket Orders = ${this.orders.size}`);
+            tlUtils.log(`Handling Open Bracket Orders = ${this.orders.size}`);
             await this.removeBrokenBracketOrders(this.orders)
                 .catch((error) => {
-                    this.log(`Error Removing Broken Bracket Orders While Handling Open Orders`, error);
+                    tlUtils.log(`Error Removing Broken Bracket Orders While Handling Open Orders`, error);
                 });
 
             await this.handleMissedEntries(this.orders)
                 .catch((error) => {
-                    this.log(`Error Handling Missed Entries While Handling Open Orders`, error);
+                    tlUtils.log(`Error Handling Missed Entries While Handling Open Orders`, error);
                 });
             await this.updateTrailStops(this.orders)
                 .catch((error) => {
-                    this.log(`Error Updating Trail Stops While Handling Open Orders`, error);
+                    tlUtils.log(`Error Updating Trail Stops While Handling Open Orders`, error);
                 });
-            this.log(`Finished Handling Open Bracket Orders`);
+            tlUtils.log(`Finished Handling Open Bracket Orders`);
         }
 
     }
 
     async handleMissedEntries(bracketOrderMap) {
-        this.log(`Handling Missed Entries`);
+        tlUtils.log(`Handling Missed Entries`);
         let currentPrice = this.getCurrentPrice(this.LTF);
         for (const uid of bracketOrderMap.keys()) {
             let currentBracketOrder = bracketOrderMap.get(uid);
@@ -1687,18 +1600,18 @@ class TradingLogic {
                 // Remove bracket orders where the price is closer to the target than the entry
                 //if (rr < this.minRewardRiskRatio || priceDelta > (reward / 2)) {
                 if (priceDelta > (reward * (2 / 3))) { // Price is 75% the way to the reward
-                    this.log(`Price has moved (2/3 toward) too close to the target without hitting the entry. Cancelling the bracket orders.`);
+                    tlUtils.log(`Price has moved (2/3 toward) too close to the target without hitting the entry. Cancelling the bracket orders.`);
                     // Should be able to cancel the entry and all other get canceled on update from the system
                     //await this.Deribit.cancelByLabel(entryLabel);
                     await this.closeBracket(stopLabel, targetLabel, entryLabel);
                 }
             }
         }
-        this.log(`Finished Handling Missed Entries`);
+        tlUtils.log(`Finished Handling Missed Entries`);
     }
 
     async removeBrokenBracketOrders(bracketOrderMap) {
-        this.log(`Removing Broken Bracket Orders`);
+        tlUtils.log(`Removing Broken Bracket Orders`);
         // Broken Criteria:
         // -- A Stop with out a target
         // -- A Target without a stop
@@ -1706,17 +1619,17 @@ class TradingLogic {
 
         for (const uid of bracketOrderMap.keys()) {
             let currentBracketOrder = bracketOrderMap.get(uid);
-            if (this.myXOR(currentBracketOrder.has('stop'), currentBracketOrder.has('target')) ||
+            if (ut.myXOR(currentBracketOrder.has('stop'), currentBracketOrder.has('target')) ||
                 (currentBracketOrder.has('entry') && (!currentBracketOrder.has('stop') || !currentBracketOrder.has('target')))) {
                 // Remove lingering trail stops that have no targets and no entries
-                this.log(`Found Broken Bracket Order: Removing it Now!`);
+                tlUtils.log(`Found Broken Bracket Order: Removing it Now!`);
                 let stopLabel = (currentBracketOrder.has('stop')) ? uid + '|stop' : false;
                 let targetLabel = currentBracketOrder.has('target') ? uid + '|target' : false;
                 let entryLabel = currentBracketOrder.has('entry') ? uid + '|entry' : false;
                 await this.closeBracket(stopLabel, targetLabel, entryLabel);
             }
         }
-        this.log(`Finished Removing Broken Bracket Orders`);
+        tlUtils.log(`Finished Removing Broken Bracket Orders`);
     }
 
     async closeBracket(stop = false, target = false, entry = false) {
@@ -1737,13 +1650,13 @@ class TradingLogic {
 
         await Promise.allSettled(promises)
             .then((results) => {
-                results.forEach((result) => this.log(result.status));
+                results.forEach((result) => tlUtils.log(result.status));
             })
             .then(() => {
-                this.log(`Brackets Orders Closed: ${JSON.stringify(bracketOrdersClosing)}`);
+                tlUtils.log(`Brackets Orders Closed: ${JSON.stringify(bracketOrdersClosing)}`);
             })
             .catch(async (e) => {
-                this.log(`Error Closing Bracket Order. | Error: ${e.message}`)
+                tlUtils.log(`Error Closing Bracket Order. | Error: ${e.message}`)
             })
     }
 
@@ -1760,7 +1673,7 @@ class TradingLogic {
     }
 
     async updateTrailStops(bracketOrderMap) {
-        this.log(`Updating Trail Stops`);
+        tlUtils.log(`Updating Trail Stops`);
         let currentPrice = this.getCurrentPrice(this.LTF);
 
         // Get all Stop Market Orders where the entry is filled
@@ -1781,6 +1694,7 @@ class TradingLogic {
                 let stopPrice = stopOrder['stop_price'];
                 let orderId = stopOrder['order_id'];
                 let tradeSize = stopOrder['amount'];
+                let zoneProperties;
 
                 if (direction.indexOf('sell') !== -1) {
                     // If sell stop market move the stop price up to the next 1:1 reward point or fresh demand distal line. Whichever is higher
@@ -1789,12 +1703,12 @@ class TradingLogic {
                     // get freshest demand and move stop price to the distal line (has to be greater than the time entry for the stop
                     let freshDemand = this.getFreshDemandTimeFrame(this.LTF);
                     if (freshDemand) {
-                        let freshDemandDistal = this.getDemandDistalLine(freshDemand);
-                        nextStop = Math.max(nextStop, freshDemandDistal);
+                        zoneProperties = ch.getZoneProperties(freshDemand, this.getCurrentPrice(this.LTF));
+                        nextStop = Math.max(nextStop, zoneProperties['distal']);
                     }
 
                     if (currentPrice >= nextStop) {
-                        this.log(`^^^ Updating Sell Stop Market Order to ${nextStop} ^^^`);
+                        tlUtils.log(`^^^ Updating Sell Stop Market Order to ${nextStop} ^^^`);
                         await this.Deribit.editStopOrder(orderId, tradeSize, nextStop);
                     }
 
@@ -1806,18 +1720,18 @@ class TradingLogic {
                     //get freshest supply and move stop price to the distal line (has to be greater than the time entry for the stop
                     let freshSupply = this.getFreshSupplyTimeFrame(this.LTF);
                     if (freshSupply) {
-                        let freshSupplyDistal = this.getSupplyDistalLine(freshSupply);
-                        nextStop = Math.min(nextStop, freshSupplyDistal);
+                        zoneProperties = ch.getZoneProperties(freshSupply, this.getCurrentPrice(this.LTF));
+                        nextStop = Math.min(nextStop, zoneProperties['distal']);
                     }
 
                     if (currentPrice <= nextStop) {
-                        this.log(`VVV Updating Buy Stop Market Order to ${nextStop} VVV`);
+                        tlUtils.log(`VVV Updating Buy Stop Market Order to ${nextStop} VVV`);
                         await this.Deribit.editStopOrder(orderId, tradeSize, nextStop);
                     }
                 }
             }
         }
-        this.log(`Finished Updating Trail Stops`);
+        tlUtils.log(`Finished Updating Trail Stops`);
     }
 
     getBORisk(bo) {
@@ -1834,7 +1748,7 @@ class TradingLogic {
 
     getLeverage(minDefault = 1, max = 100) {
         let position = this.Deribit.getPosition();
-        this.log(`Position (from API): ${JSON.stringify(position)}`,);
+        tlUtils.log(`Position (from API): ${JSON.stringify(position)}`,);
         let leverage = (position['leverage']) ? (position['leverage'] * .75) : 1; //  Deribit allows 100x leverage. We are capping at 75% of current leverage allowed
         leverage = Math.max(1, Math.min(minDefault, leverage));
         leverage = Math.min(max, leverage);
@@ -1847,7 +1761,7 @@ class TradingLogic {
         let leverage = this.getLeverage(minLeverage, maxLeverage);
         let finalMaxLeverage = leverage * oeScorePercentage;
         let riskMultiplier = Math.max(this.minRiskMultiplier, Math.floor(finalMaxLeverage));
-        this.log(`Risk Multiplier: ${riskMultiplier}| oeScore: ${oeScore} | oeScorePercent: ${oeScorePercentage} | leverage: ${leverage} | maxLeverage: ${finalMaxLeverage}`);
+        tlUtils.log(`Risk Multiplier: ${riskMultiplier}| oeScore: ${oeScore} | oeScorePercent: ${oeScorePercentage} | leverage: ${leverage} | maxLeverage: ${finalMaxLeverage}`);
         return riskMultiplier;
 
     }
@@ -1877,7 +1791,7 @@ class TradingLogic {
         // Maximum Account Risk (in dollars) / (Trade Risk (in ticks) x Tick Value) = Trade Size
         let tradeSize = Math.floor(this.getMaxAccountRiskUSD() / (riskInTicks * this.tickValue));
         let draftTS = isFinite(tradeSize) ? tradeSize : this.contractMultiple;
-        //this.log(`Tradesize: ${finalTS} | Max Account Risk \$${getMaxAccountRiskUSD()} | Trade Risk in Ticks: ${riskInTicks} | Tick Value: ${tickValue}`);
+        //tlUtils.log(`Tradesize: ${finalTS} | Max Account Risk \$${getMaxAccountRiskUSD()} | Trade Risk in Ticks: ${riskInTicks} | Tick Value: ${tickValue}`);
         return Math.ceil(draftTS / this.contractMultiple) * this.contractMultiple;
     }
 
@@ -1901,7 +1815,7 @@ class TradingLogic {
             let target = uid + '|target';
             let entry = uid + '|entry';
 
-            //this.log(`Order Sub. Label: ${orderLabel} | Type: ${orderType}`, order);
+            //tlUtils.log(`Order Sub. Label: ${orderLabel} | Type: ${orderType}`, order);
 
             // Add open Orders to Orders Map for tracking to not duplicate placing orders
             /*
@@ -1909,7 +1823,7 @@ class TradingLogic {
             if (!closedOrderStates.includes(orderState)) {
                 let bracketOrder;
                 if (!this.orders.has(uid)) {
-                    this.log(`Found Open Order: ${uid}`);
+                    tlUtils.log(`Found Open Order: ${uid}`);
                     this.orders.set(uid, order); // Just placing an order here so that it tracks something is already placed
                 }
             }
@@ -1923,7 +1837,7 @@ class TradingLogic {
 
             // If order type is not entry OR order type is not filled then cancel the other tied (bracket) orders that are in closed order states/statuses
             if (orderType && (orderType.indexOf("entry") === -1 || orderState.indexOf('filled') === -1) && closedOrderStates.includes(orderState)) {
-                this.log(`${orderType} Order ${orderState} | Canceling Bracket Orders`);
+                tlUtils.log(`${orderType} Order ${orderState} | Canceling Bracket Orders`);
                 await this.Deribit.cancelByLabel(stop);
                 await this.Deribit.cancelByLabel(target);
                 await this.Deribit.cancelByLabel(entry);
@@ -1941,16 +1855,16 @@ class TradingLogic {
 
                     }
 
-                    this.log(`${orderType} Order Closed | Canceling Bracket Orders`);
+                    tlUtils.log(`${orderType} Order Closed | Canceling Bracket Orders`);
                     this.Deribit.cancelByLabel(stop);
                     this.Deribit.cancelByLabel(target);
                 }
             } else if (orderType === 'entry') {
                 // If entry gets canclled or rejected then close the other exits
-                // this.log(`Canceling Bracket Orders Labeled: ${orderLabel}`);
+                // tlUtils.log(`Canceling Bracket Orders Labeled: ${orderLabel}`);
                 closedOrderStates = ["rejected", "cancelled"];
                 if (closedOrderStates.includes(orderState)) {
-                    this.log(`${orderType} Order Closed | Canceling Bracket Orders`);
+                    tlUtils.log(`${orderType} Order Closed | Canceling Bracket Orders`);
 
                     this.Deribit.cancelByLabel(stop);
                     this.Deribit.cancelByLabel(target)

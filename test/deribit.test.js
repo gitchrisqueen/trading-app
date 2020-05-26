@@ -4,7 +4,11 @@
 
 //
 const deribit = require('../src/deribit');
-const ut = require('../src/utils');
+const utils = require('../src/utils');
+const ut = new utils('true');
+ut.setLogColor('#FFA500');
+ut.setScriptName('Deribit.Test.js');
+
 let dbit;
 const time = Date.now();
 const key = '3hjn18oV';
@@ -60,44 +64,76 @@ describe('constructor() tests', () => {
 
 describe(`Get Functions Test`, () => {
 
-    test('getOrderTypes() expects to be getOrderTypes', () => {
-        expect(dbit.getOrderTypes()).toBe(dbit.orderTypes);
+    describe(`getOrderTypes()`, () => {
+        test('expects to be orderTypes', () => {
+            expect(dbit.getOrderTypes()).toBe(dbit.orderTypes);
+        });
+        test('expects to have property buylimit=buy_limit', () => {
+            expect(dbit.getOrderTypes()).toHaveProperty('buylimit', 'buy_limit');
+        });
+        test('expects to have property buystopmarket=buy_stop_market', () => {
+            expect(dbit.getOrderTypes()).toHaveProperty('buystopmarket', 'buy_stop_market');
+        });
+        test('expects to have property selllimit=sell_limit', () => {
+            expect(dbit.getOrderTypes()).toHaveProperty('selllimit', 'sell_limit');
+        });
+        test('expects to have property sellstopmarket=sell_stop_market', () => {
+            expect(dbit.getOrderTypes()).toHaveProperty('sellstopmarket', 'sell_stop_market');
+        });
     });
-    test('getOrderTypes() expects to have property buylimit=buy_limit', () => {
-        expect(dbit.getOrderTypes()).toHaveProperty('buylimit', 'buy_limit');
-    });
-    test('getOrderTypes() expects to have property buystopmarket=buy_stop_market', () => {
-        expect(dbit.getOrderTypes()).toHaveProperty('buystopmarket', 'buy_stop_market');
-    });
-    test('getOrderTypes() expects to have property selllimit=sell_limit', () => {
-        expect(dbit.getOrderTypes()).toHaveProperty('selllimit', 'sell_limit');
-    });
-    test('getOrderTypes() expects to have property sellstopmarket=sell_stop_market', () => {
-        expect(dbit.getOrderTypes()).toHaveProperty('sellstopmarket', 'sell_stop_market');
-    });
-    test('getPortfolioEquityBTC() expects to be portfolio.equity', () => {
-        expect(dbit.getPortfolioEquityBTC()).toBe(dbit.portfolio.equity);
-    });
-    test('getPortfolioEquityBTC() expects not to be NaN', () => {
-        expect(dbit.getPortfolioEquityBTC()).not.toBeNaN();
-    });
-    test('getPortfolioTotalPLBTC() expects to be portfolio.equity', () => {
-        expect(dbit.getPortfolioTotalPLBTC()).toBe(dbit.portfolio.total_pl);
-    });
-    test('getPortfolioTotalPLBTC() expects not to be NaN', () => {
-        expect(dbit.getPortfolioTotalPLBTC()).not.toBeNaN();
-    });
-    test('getPortfolioTotalPLBTC() expects to be portfolio.equity', () => {
-        //TODO: This is not a good test find something better
-        let total = dbit.portfolio.total_pl + dbit.portfolio.equity;
-        expect(dbit.getPortfolioTotalPLBTC()).toBe(total);
-    });
-    test('getAccountTotalBTC() expects not to be NaN', () => {
-        expect(dbit.getAccountTotalBTC()).not.toBeNaN();
+    describe(`Get Portfolio Functions`, () => {
+
+        describe(`getPortfolioEquityBTC()`, () => {
+
+            test('expects to be portfolio.equity', () => {
+                expect(dbit.getPortfolioEquityBTC()).toBe(dbit.portfolio.equity);
+            });
+            test('expects to be a number', () => {
+                expect(dbit.getPortfolioEquityBTC()).not.toBeNaN();
+
+            });
+        });
+
+        describe(`getPortfolioTotalPLBTC()`, () => {
+            test('expects to be portfolio.equity', () => {
+                expect(dbit.getPortfolioTotalPLBTC()).toBe(dbit.portfolio.total_pl);
+            });
+            test('expects to be a number', () => {
+                expect(dbit.getPortfolioTotalPLBTC()).not.toBeNaN();
+            });
+            test('expects to equal portfolio.total_pl + portfolio.equity', () => {
+                //TODO: This is not a good test find something better
+                let total = dbit.portfolio.total_pl + dbit.portfolio.equity;
+                expect(dbit.getPortfolioTotalPLBTC()).toBe(total);
+            });
+        });
+        describe(`getAccountTotalBTC()`, () => {
+            test('expects not to be NaN', () => {
+                expect(dbit.getAccountTotalBTC()).not.toBeNaN();
+            });
+        });
+        describe(`getPosition()`, () => {
+            test('expects to be position property', () => {
+                expect(dbit.getPosition()).toBe(dbit.position);
+            });
+            test('expects to contain leverage,size,floating_profit_loss properties', () => {
+                let expected = {
+                    'leverage': expect.any(Number),
+                    'size': expect.any(Number),
+                    'floating_profit_loss': expect.any(Number)
+                };
+                expect(dbit.getPosition()).toEqual(expect.objectContaining(expected));
+            });
+        });
     });
 
     describe(`Asynchronous Functions`, () => {
-
+        beforeAll(async () => {
+            await dbit.init();
+        });
+        afterAll( () => {
+            return dbit.disconnect();
+        });
         describe.each([
             ['BTC-PERPETUAL', time - (1000 * 60 * 60), time - (1000 * 60 * 60), '1', true],
             ['BTC-PERPETUAL', time - (1000 * 60 * 60), time - (1000 * 60 * 60) + (1000 * 60), '1', true],
@@ -107,22 +143,17 @@ describe(`Get Functions Test`, () => {
             ['BTC-PERPETUAL', 1167609600000, 1167609600000, '1', false] // Time (1/1/2007) before bitcoin was even created (~2008)
             // TODO: A time where stop less than start ???
         ])(`getBars(%s,%i,%i,%s)`, (inst, start, stop, resolution, expectsBars) => {
-
             // Expect the first bar time to equal the start time
             // Expect the last bar time to equal the last time
             // Expect the returned array length to equal the expectedBarCount
             // Expect the returned bars to have properties (high,low,open,close,time)
-
-
             let results, length, firstBar, lastBar, firstBarTime, lastBarTime, expectedBarCount = 0;
             let properties = ['high', 'low', 'open', 'close', 'time'];
             let resolutionInMinutes = ut.getTimeFrameInMinutes(resolution);
             let resolutionInMilliSeconds = resolutionInMinutes * 60 * 1000;
             //let divisor = ut.div_mod(resolutionInMilliSeconds, 10)[0];
             let divisor = resolutionInMilliSeconds
-
             beforeAll(async () => {
-                await dbit.init();
                 results = await dbit.getBars(inst, start, stop, resolution);
                 length = results.length;
                 firstBar = results[0];
@@ -140,16 +171,9 @@ describe(`Get Functions Test`, () => {
                 start = Math.floor(start / divisor);
                 return stop = Math.floor(stop / divisor);
             });
-
-            afterAll(async () => {
-                return await dbit.disconnect();
-            });
-
             test(`expects results to have property length`, async () => {
                 return expect(results).toHaveProperty('length');
             });
-
-
             if (expectsBars) {
                 test(`expects bar to have properties: ${JSON.stringify(properties)}`, async () => {
                     for (let r in results) {
@@ -166,7 +190,7 @@ describe(`Get Functions Test`, () => {
                 test(`expects last bar time to close to ${stop}`, async () => {
                     return expect(lastBarTime).toBeCloseTo(stop, 0);
                 });
-                test(`expects bar(s)`, async() => {
+                test(`expects bar(s)`, async () => {
                     return expect(length).toBe(expectedBarCount);
                 });
             } else {
@@ -174,7 +198,57 @@ describe(`Get Functions Test`, () => {
                     return expect(length).toBe(expectedBarCount);
                 });
             }
-
+        });
+        describe(`Get Orders`, () => {
+            let orders;
+            test('getOpenOrders(BTC-PERPETUAL) expects equal array containing [jsonrpc,id,result] type', async () => {
+                orders = await dbit.getOpenOrders('BTC-PERPETUAL');
+                let expected = {
+                    'jsonrpc': '2.0',
+                    'id': expect.any(Number),
+                    'result': expect.any(Array)
+                };
+                return expect(orders).toEqual(expect.objectContaining(expected));
+            });
+            test('getOpenStopOrders(BTC-PERPETUAL) expects equal array containing [jsonrpc,id,result] type', async () => {
+                orders = await dbit.getOpenStopOrders('BTC-PERPETUAL');
+                let expected = {
+                    'jsonrpc': '2.0',
+                    'id': expect.any(Number),
+                    'result': expect.any(Array)
+                };
+                return expect(orders).toEqual(expect.objectContaining(expected));
+            });
+        });
+        describe(`getInitialPosition(BTC-PERPETUAL)`, () => {
+            test('expects array containing [leverage,size,floating_point_profit]', async () => {
+                await dbit.getInitialPosition('BTC-PERPETUAL');
+                let expected = {
+                    'leverage': expect.any(Number),
+                    'size': expect.any(Number),
+                    'floating_profit_loss': expect.any(Number)
+                };
+                return expect(dbit.getPosition()).toEqual(expect.objectContaining(expected));
+            });
+        });
+        describe(`getInstruments()`, () => {
+            test('expects to have property BTC-PERPETUAL', async () => {
+                await dbit.retrieveAPIInstruments();
+                let expected = new Map();
+                expected.set('BTC-PERPETUAL', expect.any(Array));
+                return expect(dbit.getInstruments()).toEqual(expect.objectContaining(expected));
+            });
+        });
+        describe(`getCurrentPriceStored(BTC-PERPETUAL)`, () => {
+            test('expects to equal any number', async () => {
+                return expect(dbit.getCurrentPriceStored('BTC-PERPETUAL')).toEqual(expect.any(Number));
+            });
+        });
+        describe(`getCurrentPriceLive(BTC-PERPETUAL)`, () => {
+            test('expects to equal any number', async () => {
+                let cpl = await dbit.getCurrentPriceLive('BTC-PERPETUAL');
+                return expect(cpl).toEqual(expect.any(Number));
+            });
         });
     });
 });

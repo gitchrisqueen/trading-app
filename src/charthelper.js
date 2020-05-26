@@ -46,6 +46,12 @@ class ChartHelper {
         return this.getBarBody(bar) > (this.getBarRange(bar) / 2);
     }
 
+    /**
+     * Returns array with distal,proximal,isSupply,isDemand properties for the given zone
+     * @param zone
+     * @param currentPrice
+     * @returns {{distal: number, proximal: number, isDemand: boolean, isSupply: boolean}}
+     */
     getZoneProperties(zone, currentPrice) {
         let min = this.getMinBaseBody(zone);
         let max = this.getMaxBaseBody(zone);

@@ -5,6 +5,11 @@
 const chalk = require("chalk");
 
 class Utils {
+
+    constructor(debug = false) {
+        this.DEBUG = debug;
+    }
+
     /**
      * Return the number of days in the given month and year
      * @param month
@@ -109,8 +114,29 @@ class Utils {
             return error.fileName;
     }
 
+    setLogColor(color){
+        this.setBGLogColor(color);
+        this.setFGLogColor(color);
+    }
+
+    setBGLogColor(color) {
+        this.bgLogColor = color;
+    }
+
+    setFGLogColor(color) {
+        this.fgLogColor = color;
+    }
+
+    getBGLogColor() {
+        return this.bgLogColor;
+    }
+
+    getFGLogColor() {
+        return this.fgLogColor;
+    }
+
     /**
-     * Dispaly a log to the console using the parameters and prefix with the script name and the income name
+     * Display a log to the console using the parameters and prefix with the script name and the income name
      * @param message
      * @param variable
      * @param incomeLevel
@@ -123,7 +149,7 @@ class Utils {
         if (variable !== false) {
             message = message + JSON.stringify(variable);
         }
-        message = chalk.yellow.bold(maskedFileName) + chalk.bgYellow.hex('#000000').bold(` ${message} `);
+        message = chalk.hex(this.getFGLogColor()).bold(maskedFileName) + chalk.bgHex(this.getBGLogColor()).hex('#000000').bold(` ${message} `);
         if (this.DEBUG) {
             console.log(message);
         }
@@ -177,4 +203,4 @@ class Utils {
 
 }
 
-module.exports = new Utils();
+module.exports = Utils;
