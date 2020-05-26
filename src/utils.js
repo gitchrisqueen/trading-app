@@ -141,8 +141,11 @@ class Utils {
      * @param variable
      * @param incomeLevel
      */
-    log(message, variable = false, incomeLevel = '') {
-        let fileName = `[${this.getScriptName()}] (${incomeLevel})`;
+    log(message, variable = false, incomeLevel = false) {
+        let fileName = `[${this.getScriptName()}]`;
+        if(incomeLevel!==false){
+            fileName += ` (${incomeLevel})`;
+        }
         let minLength = 33;
         let maskedFileName = fileName.padEnd(minLength, '-') + '> ';
 
