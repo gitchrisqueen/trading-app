@@ -5,11 +5,6 @@
 const chalk = require("chalk");
 
 class Utils {
-
-    constructor(debug = false) {
-        this.DEBUG = debug;
-    }
-
     /**
      * Return the number of days in the given month and year
      * @param month
@@ -77,85 +72,26 @@ class Utils {
         if (global.gc) {
             global.gc();
         } else {
-            this.log('No GC hook! Start your program as `node --expose-gc`');
+            throw new Error('No GC hook! Start your program as `node --expose-gc`');
         }
     }
 
-    /**
-     * Set the script name to be used in logging functions
-     * @param name
-     */
-    setScriptName(name) {
-        this.scriptName = name;
-    }
-
-    /**
-     * Return the script name as determined by stack trace from the parent function
-     * @returns {string|*}
-     */
-    getScriptName() {
-        if (this.scriptName) {
-            return this.scriptName
-        }
-
-        let error = new Error()
-            , source
-            , lastStackFrameRegex = new RegExp(/.+\/(.*?):\d+(:\d+)*$/)
-            , parentStackFrameRegex = (/ \(.+\/(.*):\d+:\d+\)/g)
-            , currentStackFrameRegex = new RegExp(/getScriptName \(.+\/(.*):\d+:\d+\)/);
-
-        if ((source = lastStackFrameRegex.exec(error.stack.trim())) && source[1] != "") {
-            return source[1];
-        } else if ((source = [...error.stack.trim().matchAll(parentStackFrameRegex)]) && source[1] && source[1][1] != "") {
-            return source[1][1];
-        } else if ((source = currentStackFrameRegex.exec(error.stack.trim())) && source[1] != "") {
-            return source[1];
-        } else if (error.fileName != undefined)
-            return error.fileName;
-    }
-
-    setLogColor(color){
-        this.setBGLogColor(color);
-        this.setFGLogColor(color);
-    }
-
-    setBGLogColor(color) {
-        this.bgLogColor = color;
-    }
-
-    setFGLogColor(color) {
-        this.fgLogColor = color;
-    }
-
-    getBGLogColor() {
-        return this.bgLogColor;
-    }
-
-    getFGLogColor() {
-        return this.fgLogColor;
-    }
 
     /**
      * Display a log to the console using the parameters and prefix with the script name and the income name
-     * @param message
-     * @param variable
-     * @param incomeLevel
+     * @param {string} fileName - File name to pref
+     * @param {string} message - message to display to the log
+     * @param {Object} variable - optional variable to append as json string to the message
+     * @param {string} logColor - Hexadecimal value representing the desired color for log output.
+     * @param {number} padLength - length to pad after the fileName with '-'
      */
-    log(message, variable = false, incomeLevel = false) {
-        let fileName = `[${this.getScriptName()}]`;
-        if(incomeLevel!==false){
-            fileName += ` (${incomeLevel})`;
-        }
-        let minLength = 33;
-        let maskedFileName = fileName.padEnd(minLength, '-') + '> ';
-
+    log(fileName, message, variable = false, logColor = "#000000", padLength = 33) {
+        let maskedFileName = fileName.padEnd(padLength, '-') + '> ';
         if (variable !== false) {
             message = message + JSON.stringify(variable);
         }
-        message = chalk.hex(this.getFGLogColor()).bold(maskedFileName) + chalk.bgHex(this.getBGLogColor()).hex('#000000').bold(` ${message} `);
-        if (this.DEBUG) {
-            console.log(message);
-        }
+        message = chalk.hex(logColor).bold(maskedFileName) + chalk.bgHex(logColor).hex('#000000').bold(` ${message} `);
+        console.log(message);
     }
 
     /**
@@ -203,7 +139,5 @@ class Utils {
         return minutes;
     }
 
-
 }
-
-module.exports = Utils;
+module.exports = new Utils();

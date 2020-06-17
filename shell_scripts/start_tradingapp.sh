@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
+BASEDIR=$(dirname "$0")
 
 # Load env variables (in the .env file)
 set -o allexport
-source .env
+source "$BASEDIR/../.env"
 set +o allexport
 
-dockerConfig="'$(<aws_docker_config.json)'"
-restartBash="'$(<restart-docker-containers.sh)'"
+dockerConfig="'$(< $BASEDIR/../aws_docker_config.json)'"
+restartBash="'$(< $BASEDIR/restart-docker-containers.sh)'"
 #echo "$dockerConfig";
+#echo "$restartBash";
 
+#localizing the env variable for port
+port="${PORT}"
 dockerImage="frostbyte07/btc-trading-app:latest"
 
 echo "Build Container?:"
@@ -85,24 +89,30 @@ function getDockerScript() {
   deribit_url=${4}
   key=${5}
   secret=${6}
-  dockerConfig=${7}
-  restartBash=${8}
+  host=${7}
+  port=${8}
+  dockerConfig=${9}
+  restartBash=${10}
 
   appName="TradingApp-${incomeLevel}-${type}"
 
   # Stop any previous container
+  echo "Stopping Previous Containers"
   docker stop $(docker ps -aq -f "name=TradingApp" --format "{{.Names}}")
 
   # Remove any previous containers
+  echo "Removing Previous Containers"
   docker rm $(docker ps -aq -f "name=TradingApp" --format "{{.Names}}")
 
-  # Pull Latest Inage
+  # Pull Latest Image
+  echo "Pulling latest docker image"
   docker pull "$dockerImage"
 
-  # Start the conatiner
+  # Start the container
   # Attached
   #docker run -t --memory 983m -a STDOUT -a STDERR --name "$appName" --restart unless-stopped -e INCOMELEVEL="$incomeLevel" -e DOMAIN="$deribit_url" -e KEY="$key" -e SECRET="$secret" "$dockerImage"
   # Detached
+  echo "Starting the docker container detached"
   docker run \
     -d \
     -t \
@@ -113,17 +123,22 @@ function getDockerScript() {
     --name "$appName" \
     --restart unless-stopped \
     -e INCOMELEVEL="$incomeLevel" \
-    -e DOMAIN="$deribit_url" \
+    -e DERIBIT_DOMAIN="$deribit_url" \
     -e KEY="$key" \
     -e SECRET="$secret" \
+    -e HOST="$host" \
+    -e PORT="$port" \
+    -p "$port":"$port" \
     "$dockerImage"
 
   # Copy aws_dockerconfig.json to server
+  echo "Copying the aws_dockerconfig.json file to server"
   temp="${dockerConfig%\'}"
   temp="${temp#\'}"
   echo "$temp" >~/aws_docker_config.json
 
   # Start WatchTower
+  echo "Starting the WatchTower Container"
   sudo docker stop watchtower
   sudo docker rm watchtower
   sudo docker run -d \
@@ -134,9 +149,11 @@ function getDockerScript() {
   #--interval 10 # 10 seconds default 5 minutes?
 
   # Remove all 'at' jobs
+  echo "Removing all 'at' jobs"
   for i in $(atq | awk '{print $1}'); do atrm $i; done
 
   # Copy restart-docker-containers.sh to server
+  echo "Copying restart-docker-containers.sh to server"
   temp="${restartBash%\'}"
   temp="${temp#\'}"
   echo "$temp" >~/restart-docker-containers.sh
@@ -145,6 +162,7 @@ function getDockerScript() {
   chmod +x ~/restart-docker-containers.sh
 
   #Start the restart script
+  echo "Starting the restart script"
   ~/restart-docker-containers.sh
 }
 
@@ -153,11 +171,11 @@ select location in "local" "aws"; do
   case "$location" in
   "local")
     echo "Launching Locally"
-    getDockerScript "$incomeLevel" "$type" "$dockerImage" "$deribit_url" "$key" "$secret" "$dockerConfig" "$restartBash"
+    getDockerScript "$incomeLevel" "$type" "$dockerImage" "$deribit_url" "$key" "$secret" "127.0.0.1" "$port" "$dockerConfig" "$restartBash"
     break
     ;;
   "aws")
-    ssh -i ~/.ssh/aws_trading_app_keypair.pem ec2-user@"$ssh_ip" "$(typeset -f getDockerScript); getDockerScript $incomeLevel $type $dockerImage $deribit_url $key $secret $dockerConfig $restartBash"
+    ssh -i ~/.ssh/aws_trading_app_keypair.pem ec2-user@"$ssh_ip" "$(typeset -f getDockerScript); getDockerScript $incomeLevel $type $dockerImage $deribit_url $key $secret $ssh_ip $port $dockerConfig $restartBash"
     break
     ;;
   *) echo invalid option ;;

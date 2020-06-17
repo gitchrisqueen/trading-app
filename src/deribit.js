@@ -2,34 +2,35 @@
  * Copyright (c) 2020. Christopher Queen Consulting LLC (http://www.ChristopherQueenConsulting.com/)
  */
 
+const Connection = require('deribit-v2-ws-gitchrisqueen');
 let bluebird = require('bluebird');
 const chalk = require("chalk");
-const utils = require('../src/utils');
-const dbUtils = new utils(true);
-dbUtils.setLogColor('#008000');
-dbUtils.setScriptName('Deribit.js');
-
-//Deribit API
-const DBV2WS = require('deribit-v2-ws-gitchrisqueen');
+const utils = require('./utils');
 
 class Deribit {
 
-    constructor() {
-        this.DEBUG = false;
+    /**
+     * Utilizes a connection to the deribit API and initialized a few local variables
+     * @param {Connection} deribitApi
+     * @param {boolean} debug - flag used to decide when to print logging information
+     */
+    constructor(deribitApi, debug = false) {
+        this._debug = debug;
+        this._deribitApi = deribitApi;
 
-        if (this.DEBUG) {
+        if (this._debug) {
             process.on("unhandledRejection", function (reason, promise) {
                 /* You might start here by adding code to examine the
                    promise specified by event.promise and the reason in
                    event.reason */
 
-                dbUtils.log(chalk.red.bold("[PROCESS] Unhandled Promise Rejection"));
-                dbUtils.log(chalk.red.bold("- ".padEnd(30, '- ')));
-                dbUtils.log(`Reason`);
-                dbUtils.log(reason);
-                dbUtils.log(`Promise`);
-                dbUtils.log(promise);
-                dbUtils.log(chalk.red.bold("- ".padEnd(30, '- ')));
+                console.log(chalk.red.bold("[PROCESS] Unhandled Promise Rejection"));
+                console.log(chalk.red.bold("- ".padEnd(30, '- ')));
+                console.log(`Reason`);
+                console.log(reason);
+                console.log(`Promise`);
+                console.log(promise);
+                console.log(chalk.red.bold("- ".padEnd(30, '- ')));
 
             });
         }
@@ -79,56 +80,50 @@ class Deribit {
             selllimit: "sell_limit",
             sellstopmarket: "sell_stop_market"
         };
-
-        // Deribit Credentials
-        const key = process.env.KEY;
-        const secret = process.env.SECRET;
-        const domain = process.env.DOMAIN;
-        const debug = this.DEBUG;
-
-        if (key && secret && domain) {
-            dbUtils.log('Connecting to API');
-            this.deribitApi = new DBV2WS({key, secret, domain, debug});
-        } else {
-            dbUtils.log(`Cannot connect to Deribit. Missing Credentials: key=${key} | secret=${secret} | domain=${domain}`);
-            process.exit(1);
-        }
     }
 
+    /**
+     * Calls on the end method from the _deribitApi variable.
+     * @returns {Promise<void>}
+     */
     async disconnect() {
-        this.deribitApi.end();
+        await this._deribitApi.end();
     }
 
+    /**
+     * Calls the connect and disable_cancel_on_disconnect functions of _deribitApi. Setup subscriptions
+     * @returns {Promise<void>}
+     */
     async init() {
-        await this.deribitApi.connect()
+        await this._deribitApi.connect()
             .then(() => {
-                dbUtils.log(`${new Date} | connected`);
+                this.log(`${new Date} | connected`);
             })
             .catch((error) => {
-                dbUtils.log(`${new Date} | could not connect`, error);
+                this.log(`${new Date} | could not connect`, error);
                 throw new Error('Could not connect: Error: ' + error.message);
             });
 
         /*
         // TODO: Determine if this is necessary if you are able to keep the connection open indefinitely
-        await this.deribitApi.enable_cancel_on_disconnect()
+        await this._deribitApi.enable_cancel_on_disconnect()
             .then(() => {
-                 dbUtils.log(`${new Date} | Enable cancel on disconnect`);
+                 dbthis.log(`${new Date} | Enable cancel on disconnect`);
             })
             .catch((error) => {
-                 dbUtils.log(`${new Date} | Could not enable cancel on disconnect.`, error);
+                 dbthis.log(`${new Date} | Could not enable cancel on disconnect.`, error);
             });
          */
 
-        await this.deribitApi.disable_cancel_on_disconnect()
+        await this._deribitApi.disable_cancel_on_disconnect()
             .then(() => {
-                dbUtils.log(`${new Date} | Disable cancel on disconnect`);
+                this.log(`${new Date} | Disable cancel on disconnect`);
             })
             .catch((error) => {
-                dbUtils.log(`${new Date} | Could not disable cancel on disconnect.`, error);
+                this.log(`${new Date} | Could not disable cancel on disconnect.`, error);
             });
 
-        // Get available instruments from the APO
+        // Get available instruments from the API
         await this.retrieveAPIInstruments();
 
         // Get the account summary so you know amounts to trade
@@ -184,20 +179,20 @@ class Deribit {
         let startUTC = date.toUTCString();
         date.setTime(stop);
         let stopUTC = date.toUTCString();
-        dbUtils.log(`Getting Bars From: ${startUTC} - To: ${stopUTC}`);
-        return await this.deribitApi.get_tradingview_chart_data(instrument, start, stop, resolution)
+        this.log(`Getting Bars From: ${startUTC} - To: ${stopUTC}`);
+        return await this._deribitApi.get_tradingview_chart_data(instrument, start, stop, resolution)
             .then(response => {
 
                 let bars = [];
 
                 if (!response.result) {
-                    dbUtils.log(`Error Getting Bars from API No Results. Error: `, response.error);
+                    this.log(`Error Getting Bars from API No Results. Error: `, response.error);
                     return bars;
                 }
                 const data = response.result;
 
-                //dbUtils.log(`Get Bars Response`);
-                //dbUtils.log(response);
+                //dbthis.log(`Get Bars Response`);
+                //dbthis.log(response);
 
                 let nodata = data.status === 'no_data';
 
@@ -207,7 +202,7 @@ class Deribit {
 
 
                 let barsCount = nodata ? 0 : data.ticks.length;
-                //dbUtils.log(`Get Bars Count: ${barsCount}`);
+                //dbthis.log(`Get Bars Count: ${barsCount}`);
 
                 //let volumePresent = typeof data.cost != 'undefined';
                 let ohlPresent = typeof data.open != 'undefined';
@@ -237,7 +232,7 @@ class Deribit {
                 return bars;
             })
             .catch(async (error) => {
-                dbUtils.log(`Error Getting Bars from API.`, error);
+                this.log(`Error Getting Bars from API.`, error);
                 return [];
             });
     }
@@ -249,9 +244,9 @@ class Deribit {
      * @returns {Promise<*|{result: []}>}
      */
     async getOpenOrders(instrument, type = "all") {
-        return await this.deribitApi.get_open_orders_by_instrument(instrument, type)
+        return await this._deribitApi.get_open_orders_by_instrument(instrument, type)
             .catch((error) => {
-                dbUtils.log(`getOpenOrders Error:`, error);
+                this.log(`getOpenOrders Error:`, error);
                 return {'result': []};
             });
     }
@@ -264,7 +259,7 @@ class Deribit {
     async getOpenStopOrders(instrument) {
         return await this.getOpenOrders(instrument, 'stop_all')
             .catch((error) => {
-                dbUtils.log(`getOpenStopOrders Error:`, error);
+                this.log(`getOpenStopOrders Error:`, error);
                 return {'result': []};
             });
     }
@@ -278,30 +273,40 @@ class Deribit {
     }
 
     /**
-     * Get the initial position of the account for the given instrument from the Deribit API
+     * Get the initial position of the account for the given instrument from the _DataConnector API
      * @param instrument
      * @returns {Promise<void>}
      */
     async getInitialPosition(instrument) {
-        await this.deribitApi.getPosition(instrument)
+        await this._deribitApi.getPosition(instrument)
             .then((data) => {
                 if (data['result']) {
                     this.position = data['result'];
                 } else {
-                    dbUtils.log(`Using Default Position`);
+                    this.log(`Using Default Position`);
                     this.position = this.defaultPosition;
                 }
             })
             .catch((error) => {
-                dbUtils.log(`Could not Get Initial Position Error:`, error);
+                this.log(`Could not Get Initial Position Error:`, error);
             });
     }
 
     /**
      * Returns the instruments available from the api as map object. Should have info for property BTC-PERPETUAL at minimum
+     * @returns {Map}
      */
     getInstruments() {
         return this.instruments;
+    }
+
+    /**
+     * Stores the given price for the instrument to the currentPriceMap
+     * @param instrument
+     * @param price
+     */
+    setCurrentPriceStored(instrument,price) {
+        this.currentPriceMap.set(instrument,price);
     }
 
     /**
@@ -319,7 +324,7 @@ class Deribit {
      * @returns {Promise<*>}
      */
     async getCurrentPriceLive(instrument) {
-        return await this.deribitApi.get_ticker(instrument)
+        return await this._deribitApi.get_ticker(instrument)
             .then((data) => {
                 if (data['result']) {
                     return data['result']['mark_price'];
@@ -327,18 +332,23 @@ class Deribit {
                     return 0;
                 }
 
-                // dbUtils.log(`Close Position(s) Result: ${JSON.stringify(data)}`);
+                // dbthis.log(`Close Position(s) Result: ${JSON.stringify(data)}`);
             })
             .catch((error) => {
-                dbUtils.log(`Could Not Get Current Price for ${instrument}`, error);
+                this.log(`Could Not Get Current Price for ${instrument}`, error);
             });
     }
 
+    /**
+     * Calls methods getInitialPosition(),subscribePositionChanges(), and subscribeTicker() with instrument as parameter to each
+     * @param instrument
+     * @returns {Promise<void>}
+     */
     async setupPositionSubscriptions(instrument) {
 
         await this.getInitialPosition(instrument);
 
-        dbUtils.log(`My Position: ${JSON.stringify(await this.getPosition())}`);
+        this.log(`My Position: ${JSON.stringify(await this.getPosition())}`);
 
         // Subscribe to Users Changes (updates related to orders, trades, etc)
         await this.subscribePositionChanges(instrument);
@@ -350,32 +360,32 @@ class Deribit {
     async subscribePositionChanges(instrument) {
         let channel = 'user.changes.' + instrument + '.100ms';
 
-        await this.deribitApi.subscribe('private', channel)
+        await this._deribitApi.subscribe('private', channel)
             .then(() => {
-                    dbUtils.log(`Subscribed To Channel: ${channel}`);
+                    this.log(`Subscribed To Channel: ${channel}`);
                 }
             )
             .then(() => {
-                this.deribitApi.on(channel, async (data) => {
-                    dbUtils.log(`Data from channel: ${channel}: ${JSON.stringify(data)}`);
+                this._deribitApi.on(channel, async (data) => {
+                    this.log(`Data from channel: ${channel}: ${JSON.stringify(data)}`);
                     if (data['positions']) {
                         if (data['positions'][0]) {
                             let position = data['positions'][0];
                             this.position['leverage'] = (position['leverage']) ? position['leverage'] : this.position['leverage'];
                             this.position['size'] = (position['size']) ? position['size'] : this.position['size'];
                             this.position['floating_profit_loss'] = (position['floating_profit_loss']) ? position['floating_profit_loss'] : this.position['floating_profit_loss'];
-                            dbUtils.log(`Position Update: ${JSON.stringify(this.position)}`);
+                            this.log(`Position Update: ${JSON.stringify(this.position)}`);
                         } else {
-                            dbUtils.log(`No Positions Returned. Getting Directly.`);
+                            this.log(`No Positions Returned. Getting Directly.`);
                             await this.getInitialPosition(instrument);
                         }
                     } else {
-                        dbUtils.log(`No Position Change`);
+                        this.log(`No Position Change`);
                     }
                 });
             })
             .catch((error) => {
-                dbUtils.log(`Could Not Subscribe to Channel: ${channel}`, error);
+                this.log(`Could Not Subscribe to Channel: ${channel}`, error);
 
             });
     }
@@ -383,19 +393,19 @@ class Deribit {
     async subscribePortfolioUpdates() {
         let channel = 'user.portfolio.btc';
 
-        await this.deribitApi.subscribe('private', channel)
+        await this._deribitApi.subscribe('private', channel)
             .then(() => {
-                    dbUtils.log(`Subscribed To Channel: ${channel}`);
+                    this.log(`Subscribed To Channel: ${channel}`);
                 }
             )
             .then(() => {
-                this.deribitApi.on(channel, (data) => {
+                this._deribitApi.on(channel, (data) => {
                     this.portfolio = data;
-                    //dbUtils.log(`Portfolio Update: `, this.portfolio);
+                    //dbthis.log(`Portfolio Update: `, this.portfolio);
                 });
             })
             .catch((error) => {
-                dbUtils.log(`Could Not Subscribe Channel: ${channel}`, error);
+                this.log(`Could Not Subscribe Channel: ${channel}`, error);
 
             });
 
@@ -403,30 +413,54 @@ class Deribit {
 
     async subscribeBars(instrument, timeframe, onCallback) {
         let channel = "chart.trades." + instrument + "." + timeframe;
-        await this.deribitApi.subscribe('private', channel)
+        await this._deribitApi.subscribe('private', channel)
             .then(() => {
-                    dbUtils.log(`Subscribed To Channel: ${channel}`);
+                    this.log(`Subscribed To Channel: ${channel}`);
                 }
             ).then(() => {
-                this.deribitApi.on(channel, onCallback);
+                this._deribitApi.on(channel, onCallback);
             })
             .catch((error) => {
-                dbUtils.log(`Could Not Subscribe to Channel: ${channel}`, error);
+                this.log(`Could Not Subscribe to Channel: ${channel}`, error);
             });
+
+    }
+
+    async subscribeTicker(instrument) {
+        let channel = 'ticker.' + instrument + '.100ms';
+        if (!this.currentPriceMap.has(instrument)) {
+            await this._deribitApi.subscribe('private', channel)
+                .then(() => {
+                        this.log(`Subscribed To Channel: ${channel}`);
+                    }
+                ).then(() => {
+                    this._deribitApi.on(channel, (data) => {
+                        if (data['mark_price']) {
+                            this.setCurrentPriceStored(instrument,data['mark_price']);
+                        }
+                        //dbthis.log(`Portfolio Update: `, this.portfolio);
+                    });
+                })
+                .catch((error) => {
+                    this.log(`Could Not Subscribe to Channel: ${channel}`, error);
+                });
+        } else {
+            this.log(`Already Subscribed to ${channel}`);
+        }
 
     }
 
     async subscribeOrderUpdates(instrument, onCallback) {
         let channel = 'user.orders.' + instrument + '.100ms';
-        await this.deribitApi.subscribe('private', channel)
+        await this._deribitApi.subscribe('private', channel)
             .then(() => {
-                    dbUtils.log(`Subscribed To Channel: ${channel}`);
+                    this.log(`Subscribed To Channel: ${channel}`);
                 }
             ).then(() => {
-                this.deribitApi.on(channel, onCallback);
+                this._deribitApi.on(channel, onCallback);
             })
             .catch((error) => {
-                dbUtils.log(`Could Not Subscribe to Channel: ${channel}`, error);
+                this.log(`Could Not Subscribe to Channel: ${channel}`, error);
             });
 
     }
@@ -435,15 +469,15 @@ class Deribit {
      * Retrieves the account summary data and stores to portfolio property.
      */
     async retrieveAccountSummary() {
-        await this.deribitApi.get_account_summary('BTC', true)
+        await this._deribitApi.get_account_summary('BTC', true)
             .then((data) => {
                 if (data['result']) {
                     this.portfolio = data['result'];
                 }
-                dbUtils.log(`Account Summary Retrieved: ${JSON.stringify(this.portfolio)}`);
+                this.log(`Account Summary Retrieved: ${JSON.stringify(this.portfolio)}`);
             })
             .catch((error) => {
-                dbUtils.log(`Could not get Account Summary Error:`, error);
+                this.log(`Could not get Account Summary Error:`, error);
             });
     }
 
@@ -452,80 +486,56 @@ class Deribit {
      */
     async retrieveAPIInstruments() {
         this.instruments = new Map();
-        await this.deribitApi.get_instruments('BTC', 'future', false)
+        await this._deribitApi.get_instruments('BTC', 'future', false)
             .then(async (data) => {
-                //dbUtils.log(`Data from deribitApi.get_instruments(): ${JSON.stringify(data)}`);
+                //dbthis.log(`Data from _deribitApi.get_instruments(): ${JSON.stringify(data)}`);
                 if (data['result']) {
                     for (let i = 0; i < data['result'].length; ++i) {
                         let instrumentName = data['result'][i]['instrument_name'];
-                        //dbUtils.log(`Instrument Name : ${instrumentName}`);
-                        let bookSummaryArray = await this.deribitApi.get_book_summary_by_instrument(instrumentName)
+                        //dbthis.log(`Instrument Name : ${instrumentName}`);
+                        let bookSummaryArray = await this._deribitApi.get_book_summary_by_instrument(instrumentName)
                             .then((bookSummaryData) => {
                                 if (bookSummaryData['result']) {
                                     return bookSummaryData['result'][0];
                                 }
                             })
                             .catch((error) => {
-                                dbUtils.log(`Could not get Book Summary Error:`, error.message);
+                                this.log(`Could not get Book Summary Error:`, error.message);
                                 return {'volume': 0, 'open_interest': 0};
                             });
-                        //dbUtils.log(`Instrument (${instrumentName}) Book Summary: ${JSON.stringify(bookSummaryArray)}`);
+                        //dbthis.log(`Instrument (${instrumentName}) Book Summary: ${JSON.stringify(bookSummaryArray)}`);
                         this.instruments.set(instrumentName, bookSummaryArray);
                     }
-                    //dbUtils.log(`Instruments Retrieved: ${JSON.stringify([...this.instruments.entries()])}`);
+                    //dbthis.log(`Instruments Retrieved: ${JSON.stringify([...this.instruments.entries()])}`);
                 }
             })
             .catch((error) => {
-                dbUtils.log(`Could not get Instruments Error:`, error.message);
+                this.log(`Could not get Instruments Error:`, error.message);
             });
     }
 
-    async subscribeTicker(instrument) {
-        let channel = 'ticker.' + instrument + '.100ms';
-        if (!this.currentPriceMap.has(instrument)) {
-            await this.deribitApi.subscribe('private', channel)
-                .then(() => {
-                        dbUtils.log(`Subscribed To Channel: ${channel}`);
-                    }
-                ).then(() => {
-                    this.deribitApi.on(channel, (data) => {
-                        if (data['mark_price']) {
-                            this.currentPriceMap.set(instrument, data['mark_price'])
-                        }
-                        //dbUtils.log(`Portfolio Update: `, this.portfolio);
-                    });
-                })
-                .catch((error) => {
-                    dbUtils.log(`Could Not Subscribe to Channel: ${channel}`, error);
-                });
-        } else {
-            dbUtils.log(`Already Subscribed to ${channel}`);
-        }
-
-    }
-
     async editStopOrder(orderId, orderSizeUSD, stopPrice) {
-        await this.deribitApi.editOrder(orderId, orderSizeUSD, false, stopPrice)
+        await this._deribitApi.editOrder(orderId, orderSizeUSD, false, stopPrice)
             .catch((error) => {
-                dbUtils.log(`getStopOrders Error:`, error);
+                this.log(`getStopOrders Error:`, error);
             });
     }
 
     async closeOpenPosition(instrument) {
-        await this.deribitApi.close_position(instrument, 'market')
+        await this._deribitApi.close_position(instrument, 'market')
             .then((data) => {
-                //dbUtils.log(`Position(s) Closed`);
-                dbUtils.log(`Close Position(s) Result: ${JSON.stringify(data)}`);
+                //dbthis.log(`Position(s) Closed`);
+                this.log(`Close Position(s) Result: ${JSON.stringify(data)}`);
             })
             .catch((error) => {
-                dbUtils.log(`Could Not Close Open Position`, error);
+                this.log(`Could Not Close Open Position`, error);
             });
     }
 
     async cancelByLabel(label) {
-        await this.deribitApi.cancel_order_by_label(label)
+        await this._deribitApi.cancel_order_by_label(label)
             .catch((error) => {
-                dbUtils.log(`Could Not Cancel By Label: ${label}`, error);
+                this.log(`Could Not Cancel By Label: ${label}`, error);
             });
     }
 
@@ -536,7 +546,7 @@ class Deribit {
         let dOrderType = orderType.replace(/buy_|sell_/g, '');
         orderSizeUSD = parseFloat(orderSizeUSD);
         price = parseFloat(price);
-        //dbUtils.log(`Deribit Order Type: ${dOrderType}`);
+        //dbthis.log(`_DataConnector Order Type: ${dOrderType}`);
         let orderOptions = {
             "instrument_name": instrument,
             "amount": orderSizeUSD,
@@ -552,47 +562,47 @@ class Deribit {
         }
          */
 
-        //dbUtils.log(`Order Options: `,orderOptions);
+        //dbthis.log(`Order Options: `,orderOptions);
         switch (orderType) {
             case this.orderTypes.buystopmarket:
-                orderOptions = this.removePriceOption(orderOptions);
-                //dbUtils.log(`Order Options (After Remove Price): `,orderOptions);
+                orderOptions = utils.removePriceOption(orderOptions);
+                //dbthis.log(`Order Options (After Remove Price): `,orderOptions);
                 orderOptions['stop_price'] = price;
                 orderOptions['trigger'] = "mark_price";
             case this.orderTypes.buylimit:
                 // Place buy order
-                dbUtils.log(chalk.rgb(0, 255, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
-                await this.deribitApi.buy(orderOptions)
+                this.log(chalk.rgb(0, 255, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
+                await this._deribitApi.buy(orderOptions)
                     .then((response) => {
                         if (response.error) {
                             throw new Error(JSON.stringify(response.error));
                         }
-                        //dbUtils.log('Buy Response: ', response);
-                        dbUtils.log(chalk.rgb(69, 255, 0)(`${orderType} | ${label} | placed.`));
+                        //dbthis.log('Buy Response: ', response);
+                        this.log(chalk.rgb(69, 255, 0)(`${orderType} | ${label} | placed.`));
                     })
                     .catch((error) => {
-                        dbUtils.log(chalk.rgb(255, 69, 0)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error.message}`));
+                        this.log(chalk.rgb(255, 69, 0)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error.message}`));
                         throw new Error(error.message);
                     });
                 break;
             case this.orderTypes.sellstopmarket:
-                orderOptions = this.removePriceOption(orderOptions);
-                //dbUtils.log(`Order Options (After Remove Price): `,orderOptions);
+                orderOptions = utils.removePriceOption(orderOptions);
+                //dbthis.log(`Order Options (After Remove Price): `,orderOptions);
                 orderOptions['stop_price'] = price;
                 orderOptions['trigger'] = "mark_price";
             case this.orderTypes.selllimit:
                 // Place sell order
-                dbUtils.log(chalk.rgb(255, 0, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
-                await this.deribitApi.sell(orderOptions)
+                this.log(chalk.rgb(255, 0, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
+                await this._deribitApi.sell(orderOptions)
                     .then((response) => {
                         if (response.error) {
                             throw new Error(JSON.stringify(response.error));
                         }
-                        //dbUtils.log('Sell Response: ', response);
-                        dbUtils.log(chalk.rgb(255, 0, 0)(`${orderType} | ${label} | placed.`));
+                        //dbthis.log('Sell Response: ', response);
+                        this.log(chalk.rgb(255, 0, 0)(`${orderType} | ${label} | placed.`));
                     })
                     .catch((error) => {
-                        dbUtils.log(chalk.rgb(32, 178, 170)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error.message}`));
+                        this.log(chalk.rgb(32, 178, 170)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error.message}`));
                         throw new Error(error.message);
                     });
                 break;
@@ -600,8 +610,18 @@ class Deribit {
     }
 
     isLoggedIn() {
-        return this.deribitApi.authenticated;
+        return this._deribitApi.authenticated;
+    }
+
+    /**
+     * Send message to console using utils function
+     * @param message
+     * @param variable
+     */
+    log(message, variable = false) {
+        if (this._debug) {
+            utils.log(`[Deribit.js]`, message, variable, '#008000');
+        }
     }
 }
-
 module.exports = Deribit;

@@ -2,23 +2,24 @@
 * Copyright (c) 2020. Christopher Queen Consulting LLC (http://www.ChristopherQueenConsulting.com/)
 */
 
-const dBit = require('./deribit.js');
-const utils = require('./utils');
+const tlUtils = require('./utils');
 const chartHelper = require('./charthelper');
 const ch = new chartHelper();
-const tlUtils = new utils(true);
-tlUtils.setLogColor('#FFDF00');
-tlUtils.setScriptName('TradingLogic.js');
 
 
 // noinspection DuplicatedCode
 class TradingLogic {
 
-    constructor() {
+    /**
+     * @param {iDataConnector} dataConnector
+     * @param {boolean} debug - flag used to print log information
+     */
+    constructor( dataConnector, debug = false) {
+        this._debug = debug;
         this.testRan = false;
 
         this.scriptName = '';
-        this.Deribit = new dBit();
+        this._DataConnector = dataConnector;
 
         this.lastAssessmentTime = Date.now();
 
@@ -93,8 +94,8 @@ class TradingLogic {
         this.minTickSize = .5; // USD
         this.contractMultiple = 10;
         this.minOddsEnhancerScore = 7; // TODO: Keep stats and pick the lowest score with the highest win %. NOTE: Setting to 5 to see if we only take halfway good trades (Max OEScore is 10)
-        this.minLeverage = 40;
-        this.maxLeverage = 50;
+        this.minLeverage = 0;
+        this.maxLeverage = 100;
 
         this.bracketOrder = this.getBracketOrderBlank();
         this.orders = new Map();
@@ -140,12 +141,12 @@ class TradingLogic {
             case this.incomeLevels.daily:
                 //  <---- Daily Income ---->
                 this.HTF = '1D'; // in minutes
-                this.ITF = 60; // in minutes
-                this.LTF = 15; // in minutes
+                this.ITF = 180; // in minutes
+                this.LTF = 60; // in minutes
                 break;
 
             /*
-            // Cant currently do anything larger than 1 day on Deribit
+            // Cant currently do anything larger than 1 day on _DataConnector
          case this.incomeLevels.weekly:
              //  <---- Weekly Income ---->
              this.HTF = '1W'; // in minutes
@@ -171,13 +172,13 @@ class TradingLogic {
      * @returns {unknown}
      */
     getMostLiquidInstrument() {
-        let instruments = this.Deribit.getInstruments();
+        let instruments = this._DataConnector.getInstruments();
 
         // TODO: Determine if Perpetual should be removed or not
         // remove the perpetual so it doesnt sort using it
         //instruments.delete('BTC-PERPETUAL');
 
-        //this.log(`Deribit Instruments: ${JSON.stringify([...instruments.entries()])}`);
+        //this.log(`_DataConnector Instruments: ${JSON.stringify([...instruments.entries()])}`);
         let instrumentsSorted = new Map([...instruments.entries()].sort(function ([, x], [, y]) {
             return (x['volume'] - y['volume'] || x['open_interest'] - y['open_interest']);
         }));
@@ -197,7 +198,7 @@ class TradingLogic {
      */
     async init() {
         this.log('Started');
-        await this.Deribit.init();
+        await this._DataConnector.init();
 
         // Determine the Dated Contract that is most liquid (highest volume [more important] and open interest)
         let mostLiquidInstrument = this.getMostLiquidInstrument();
@@ -209,12 +210,12 @@ class TradingLogic {
         this.insturmentTimeframeMap.set(this.LTF, mostLiquidInstrument);
 
         // Setup the subscriptions for the instrument we will be executing trades on
-        await this.Deribit.setupPositionSubscriptions(mostLiquidInstrument);
+        await this._DataConnector.setupPositionSubscriptions(mostLiquidInstrument);
 
         // Get All Open Orders so they aren't duplicated if system restarts
         await this.trackAllOpenOrders();
 
-        await this.Deribit.subscribeOrderUpdates(this.getInstrumentByTimeFrame(this.LTF), async (orders) => {
+        await this._DataConnector.subscribeOrderUpdates(this.getInstrumentByTimeFrame(this.LTF), async (orders) => {
             await this.handleOrderUpdates(orders);
         });
 
@@ -232,7 +233,7 @@ class TradingLogic {
             this.determineByTimeFrame(timeframe);
 
             // Subscribe to the api for new bar data for each time frame
-            await this.Deribit.subscribeBars(this.getInstrumentByTimeFrame(timeframe), timeframe, async (data) => {
+            await this._DataConnector.subscribeBars(this.getInstrumentByTimeFrame(timeframe), timeframe, async (data) => {
 
                 // Add new Bar to Bar Map
                 let newBarAdded = this.addSubscribedBarToMap(timeframe, data);
@@ -506,10 +507,10 @@ class TradingLogic {
      */
     getCurrentPrice(timeframe) {
         //let currentPrice =  this.getLastBar(timeframe).close;
-        //let currentPrice = this.Deribit.getCurrentPriceStored(this.getInstrumentByTimeFrame(timeframe));
+        //let currentPrice = this._DataConnector.getCurrentPriceStored(this.getInstrumentByTimeFrame(timeframe));
         //this.log(`Current Price: ${currentPrice}`);
         //return currentPrice;
-        return this.Deribit.getCurrentPriceStored(this.getInstrumentByTimeFrame(timeframe));
+        return this._DataConnector.getCurrentPriceStored(this.getInstrumentByTimeFrame(timeframe));
     }
 
     /**
@@ -692,7 +693,7 @@ class TradingLogic {
 
             let nextTo = Math.min(i + delta - timeFrameInMilliseconds, to);
 
-            await this.Deribit.getBars(instrument, i, nextTo, timeframe)
+            await this._DataConnector.getBars(instrument, i, nextTo, timeframe)
                 .then(bars => {
                     //this.log(`getAllBars Found Count:`,bars.length);
                     for (const bar of bars) {
@@ -1054,10 +1055,17 @@ class TradingLogic {
                 let targetZoneTimeStampMilli = ch.getZoneTimeStampMilli(opposingZone);
                 let calculatedOddEnhancers = this.getOddEnhancers(opposingZone, timeframe); // TODO: Should this be on the opposing zone or the target entry zone
                 tradeOrder = {
-                    'bracketOrder': this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers),
                     'entryZoneTimeStampMilli': entryZoneTimeStampMilli,
                     'targetZoneTimeStampMilli': targetZoneTimeStampMilli
                 };
+                // Determine if buy or sell entry order
+                if(stop<target){
+                    tradeOrder['bracketOrder']=this.createCompleteBracketOrder(this.getBracketOrderBlank().BUY, stop, entry, target, calculatedOddEnhancers);
+                }else{
+                    tradeOrder['bracketOrder']=this.createCompleteBracketOrder(this.getBracketOrderBlank().SELL, stop, entry, target, calculatedOddEnhancers);
+                }
+
+
             }
         }
         return tradeOrder;
@@ -1251,20 +1259,20 @@ class TradingLogic {
             BUY: {
                 target: {
                     price: 0,
-                    orderType: this.Deribit.getOrderTypes().selllimit,
+                    orderType: this._DataConnector.getOrderTypes().selllimit,
                     chartText: 'ST',
 
                 },
                 entry: {
                     price: 0,
-                    orderType: this.Deribit.getOrderTypes().buylimit,
+                    orderType: this._DataConnector.getOrderTypes().buylimit,
                     chartText: 'BE',
 
 
                 },
                 stop: {
                     price: 0,
-                    orderType: this.Deribit.getOrderTypes().sellstopmarket,
+                    orderType: this._DataConnector.getOrderTypes().sellstopmarket,
                     chartText: 'SS',
 
 
@@ -1289,17 +1297,17 @@ class TradingLogic {
             SELL: {
                 target: {
                     price: 0,
-                    orderType: this.Deribit.getOrderTypes().buylimit,
+                    orderType: this._DataConnector.getOrderTypes().buylimit,
                     chartText: 'BT',
                 },
                 entry: {
                     price: 0,
-                    orderType: this.Deribit.getOrderTypes().selllimit,
+                    orderType: this._DataConnector.getOrderTypes().selllimit,
                     chartText: 'SE',
                 },
                 stop: {
                     price: 0,
-                    orderType: this.Deribit.getOrderTypes().buystopmarket,
+                    orderType: this._DataConnector.getOrderTypes().buystopmarket,
                     chartText: 'BS',
                 },
                 text: "Sell Order Entry",
@@ -1384,9 +1392,9 @@ class TradingLogic {
             if (tlUtils.btw(currentPrice, bracketOrder.stop.price, bracketOrder.entry.price, false)) {
                 this.log(`Order ${bracketOrder.entry.orderType}| UID: ${uid} | Entry Changed to Stop Market Entry | Current Price: ${currentPrice}`);
                 if (bracketOrder.entry.orderType.includes("buy")) {
-                    bracketOrder.entry.orderType = this.Deribit.getOrderTypes().buystopmarket;
+                    bracketOrder.entry.orderType = this._DataConnector.getOrderTypes().buystopmarket;
                 } else {
-                    bracketOrder.entry.orderType = this.Deribit.getOrderTypes().sellstopmarket;
+                    bracketOrder.entry.orderType = this._DataConnector.getOrderTypes().sellstopmarket;
                 }
                 orderReady = true;
 
@@ -1395,9 +1403,9 @@ class TradingLogic {
                 this.log(`Order ${bracketOrder.entry.orderType}| UID: ${uid} | Entry Changed to Limit Entry | Current Price: ${currentPrice}`);
                 // Change to proper order type in case it was changed before
                 if (bracketOrder.entry.orderType.includes("buy")) {
-                    bracketOrder.entry.orderType = this.Deribit.getOrderTypes().buylimit;
+                    bracketOrder.entry.orderType = this._DataConnector.getOrderTypes().buylimit;
                 } else {
-                    bracketOrder.entry.orderType = this.Deribit.getOrderTypes().selllimit;
+                    bracketOrder.entry.orderType = this._DataConnector.getOrderTypes().selllimit;
                 }
                 orderReady = true;
             }
@@ -1452,7 +1460,7 @@ class TradingLogic {
 
     getOrderPromise(order, uid, index, orderSizeUSD) {
         return new Promise(async (resolve, reject) => {
-            await this.Deribit.placeOrder(this.getInstrumentByTimeFrame(this.LTF), order.orderType, orderSizeUSD, order.price, uid + '|' + index)
+            await this._DataConnector.placeOrder(this.getInstrumentByTimeFrame(this.LTF), order.orderType, orderSizeUSD, order.price, uid + '|' + index)
                 .then((result) => {
                     resolve(`Order ${uid}|${index} | Promised Resolved | ${result}`);
                 })
@@ -1469,10 +1477,10 @@ class TradingLogic {
 
     getAccountTotalUSD() {
         let total = 0;
-        if (this.Deribit.isLoggedIn()) {
-            let totalBTC = this.Deribit.getAccountTotalBTC();
+        if (this._DataConnector.isLoggedIn()) {
+            let totalBTC = this._DataConnector.getAccountTotalBTC();
             // Convert to USD
-            let price = this.getLastBar(this.LTF).close;
+            let price = this.getCurrentPrice(this.LTF);
             price = isFinite(price) ? price : 0;
             total = totalBTC * price;
         }
@@ -1500,7 +1508,7 @@ class TradingLogic {
 
     async getOpenOrdersAsBracketOrdersMap() {
         // Rebuild bracket orders
-        return await this.Deribit.getOpenOrders(this.getInstrumentByTimeFrame(this.LTF))
+        return await this._DataConnector.getOpenOrders(this.getInstrumentByTimeFrame(this.LTF))
             .then(openData => {
                 let bracketOrderMap = new Map();
                 let openOrders = openData['result'];
@@ -1537,7 +1545,7 @@ class TradingLogic {
 
         if (this.orders.size == 0) {
             this.log(`No Open Orders.`);
-            let position = this.Deribit.getPosition();
+            let position = this._DataConnector.getPosition();
             //this.log(`Position: ${JSON.stringify(position)}`);
             let positionSize = parseFloat(position['size'] + '');
             let floating_profit_loss = parseFloat(position['floating_profit_loss'] + '');
@@ -1550,7 +1558,7 @@ class TradingLogic {
             } else if (floating_profit_loss > 0) {
                 // Close when profit/loss is positive
                 this.log(`Closing Open Position(s)`);
-                await this.Deribit.closeOpenPosition(this.getInstrumentByTimeFrame(this.LTF))
+                await this._DataConnector.closeOpenPosition(this.getInstrumentByTimeFrame(this.LTF))
                     .catch((error) => {
                         this.log(`Error Closing Position While Handling Open Orders`, error);
                     });
@@ -1605,7 +1613,7 @@ class TradingLogic {
                 if (priceDelta > (reward * (2 / 3))) { // Price is 75% the way to the reward
                     this.log(`Price has moved (2/3 toward) too close to the target without hitting the entry. Cancelling the bracket orders.`);
                     // Should be able to cancel the entry and all other get canceled on update from the system
-                    //await this.Deribit.cancelByLabel(entryLabel);
+                    //await this._DataConnector.cancelByLabel(entryLabel);
                     await this.closeBracket(stopLabel, targetLabel, entryLabel);
                 }
             }
@@ -1665,7 +1673,7 @@ class TradingLogic {
 
     getClosePromise(label) {
         return new Promise(async (resolve, reject) => {
-            await this.Deribit.cancelByLabel(label)
+            await this._DataConnector.cancelByLabel(label)
                 .then((result) => {
                     resolve(`Closing Order ${label} | Result: ${JSON.stringify(result)}`);
                 })
@@ -1712,7 +1720,7 @@ class TradingLogic {
 
                     if (currentPrice >= nextStop) {
                         this.log(`^^^ Updating Sell Stop Market Order to ${nextStop} ^^^`);
-                        await this.Deribit.editStopOrder(orderId, tradeSize, nextStop);
+                        await this._DataConnector.editStopOrder(orderId, tradeSize, nextStop);
                     }
 
 
@@ -1729,7 +1737,7 @@ class TradingLogic {
 
                     if (currentPrice <= nextStop) {
                         this.log(`VVV Updating Buy Stop Market Order to ${nextStop} VVV`);
-                        await this.Deribit.editStopOrder(orderId, tradeSize, nextStop);
+                        await this._DataConnector.editStopOrder(orderId, tradeSize, nextStop);
                     }
                 }
             }
@@ -1750,9 +1758,9 @@ class TradingLogic {
     }
 
     getLeverage(minDefault = 1, max = 100) {
-        let position = this.Deribit.getPosition();
+        let position = this._DataConnector.getPosition();
         this.log(`Position (from API): ${JSON.stringify(position)}`,);
-        let leverage = (position['leverage']) ? (position['leverage'] * .75) : 1; //  Deribit allows 100x leverage. We are capping at 75% of current leverage allowed
+        let leverage = (position['leverage']) ? (position['leverage'] * .75) : 1; //  _DataConnector allows 100x leverage. We are capping at 75% of current leverage allowed
         leverage = Math.max(1, Math.min(minDefault, leverage));
         leverage = Math.min(max, leverage);
         return leverage;
@@ -1841,9 +1849,9 @@ class TradingLogic {
             // If order type is not entry OR order type is not filled then cancel the other tied (bracket) orders that are in closed order states/statuses
             if (orderType && (orderType.indexOf("entry") === -1 || orderState.indexOf('filled') === -1) && closedOrderStates.includes(orderState)) {
                 this.log(`${orderType} Order ${orderState} | Canceling Bracket Orders`);
-                await this.Deribit.cancelByLabel(stop);
-                await this.Deribit.cancelByLabel(target);
-                await this.Deribit.cancelByLabel(entry);
+                await this._DataConnector.cancelByLabel(stop);
+                await this._DataConnector.cancelByLabel(target);
+                await this._DataConnector.cancelByLabel(entry);
             }
 
 
@@ -1859,8 +1867,8 @@ class TradingLogic {
                     }
 
                     this.log(`${orderType} Order Closed | Canceling Bracket Orders`);
-                    this.Deribit.cancelByLabel(stop);
-                    this.Deribit.cancelByLabel(target);
+                    this._DataConnector.cancelByLabel(stop);
+                    this._DataConnector.cancelByLabel(target);
                 }
             } else if (orderType === 'entry') {
                 // If entry gets canclled or rejected then close the other exits
@@ -1869,8 +1877,8 @@ class TradingLogic {
                 if (closedOrderStates.includes(orderState)) {
                     this.log(`${orderType} Order Closed | Canceling Bracket Orders`);
 
-                    this.Deribit.cancelByLabel(stop);
-                    this.Deribit.cancelByLabel(target)
+                    this._DataConnector.cancelByLabel(stop);
+                    this._DataConnector.cancelByLabel(target)
                 }
             }
 
@@ -1886,7 +1894,13 @@ class TradingLogic {
      * @param variable
      */
     log(message, variable = false) {
-        tlUtils.log(message, variable, this.getIncomeLevel());
+        if(this._debug) {
+            let fileName = `[TradingLogic.js]`;
+            if (this.getIncomeLevel() !== false) {
+                fileName += ` (${this.getIncomeLevel()})`;
+            }
+            tlUtils.log(fileName, message, variable, '#FFDF00');
+        }
     }
 }
 

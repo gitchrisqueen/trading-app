@@ -6,41 +6,51 @@
   "scripts": {
     "pretest": "npm install",
     "test": "jest",
-    "testdebug": "node --unhandled-rejections=strict --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand",
-    "killall": "killall node && killall jest",
+    "testdebug": "node --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand",
+    "testdebug2": "node --unhandled-rejections=strict --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand --debug --verbose",
+    "unittestdebug": "node --unhandled-rejections=strict --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand --debug unit",
+    "killall": "killall -v -9 node && killall -v -9 jest",
     "startdebug": "node --trace-warnings --expose-gc --max_old_space_size=4096 ./src/app.js",
-    "start": "node --max_old_space_size=4096 ./src/app.js",
+    "start_local": "node -r dotenv/config --max_old_space_size=4096 ./src/app.js",
+    "start": "node ./src/app.js",
     "preversion": "npm run test",
     "version": "",
     "postversion": "git push && git push --tags && rm -rf build/temp"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/chrisqueen/tradinglogic-deribit.git"
+    "url": "git+https://github.com/gitchrisqueen/trading-app.git"
   },
   "author": "Christopher Queen<christopher.queen@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/chrisqueen/tradinglogic-deribit/issues"
+    "url": "https://github.com/gitchrisqueen/trading-app/issues"
   },
-  "homepage": "https://github.com/chrisqueen/tradinglogic-deribit#readme",
+  "homepage": "https://github.com/gitchrisqueen/trading-app#readme",
   "keywords": [
     "deribit",
     "tradingview",
     "crypto",
     "exchange",
     "bitcoin",
-    "btc"
+    "btc",
+    "tdameritrade",
+    "thinkorswim"
   ],
   "dependencies": {
-    "ws": "^7.2.5",
     "bluebird": "^3.7.2",
     "chalk": "^4.0.0",
-    "forever": "^2.0.0",
-    "events": "^3.1.0",
-    "deribit-v2-ws-gitchrisqueen": "latest"
+    "cors": "^2.8.5",
+    "deribit-v2-ws-gitchrisqueen": "^1.0.25",
+    "express": "^4.17.1",
+    "morgan": "^1.10.0",
+    "serve-static": "^1.14.1"
   },
   "devDependencies": {
-    "jest": "^26.0.1"
+    "@babel/core": "^7.10.2",
+    "@babel/preset-env": "^7.10.2",
+    "babel-jest": "*",
+    "dotenv": "^8.2.0",
+    "jest": "*"
   }
 }
