@@ -22,15 +22,15 @@ const tvTemp = new TradingView.widget({
 
 const tvWidget1 = new TradingView.widget({
 //const tvWidget1 = new customTradingView.widget({
-    symbol: 'BTC-PERPETUAL',
-    interval: '1D', // default interval
+    symbol: '/NQ',
+    interval: '240', // default interval
     fullscreen: false, // displays the chart in the fullscreen mode
     container_id: 'tv_chart_HTF',
-    timezone: "Etc/UTC",
-    //timezone: "America/New_York",
+    //timezone: "Etc/UTC",
+    timezone: "America/New_York",
     //datafeed: Datafeed,
     //datafeed: new Datafeeds.DeribitFtuDataFeed(),
-    datafeed: new Datafeeds.UDFCompatibleDatafeed(window.location+'../udf/deribit'),
+    datafeed: new Datafeeds.UDFCompatibleDatafeed(window.location+'../udf'),
     library_path: './charting_library/',
     width: '100%',
     //enabled_features: ["hide_left_toolbar_by_default"],

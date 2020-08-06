@@ -7,6 +7,7 @@ services:
     container_name: Trading_Cloud_App
     build: ./
     image: frostbyte07/btc-trading-app:latest
+
   #ciapp:
     #container_name: Jenkins_CI_APP
     #image: jenkins/jenkins
