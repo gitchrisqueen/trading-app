@@ -187,8 +187,8 @@ class Deribit {
         date.setTime(stop);
         let stopUTC = date.toUTCString();
         await this.log(`Getting Bars From: ${startUTC} - To: ${stopUTC}`);
-        return await this._deribitApi.get_tradingview_chart_data(instrument, start, stop, resolution)
-            .then(response => {
+        const chart_data = await this._deribitApi.get_tradingview_chart_data(instrument, start, stop, resolution)
+        chart_data.then(response => {
 
                 let bars = [];
 
@@ -242,6 +242,7 @@ class Deribit {
                 this.log(`Error Getting Bars from API.`, error);
                 return [];
             });
+        return chart_data;
     }
 
     /**
@@ -312,8 +313,8 @@ class Deribit {
      * @param instrument
      * @param price
      */
-    setCurrentPriceStored(instrument,price) {
-        this.currentPriceMap.set(instrument,price);
+    setCurrentPriceStored(instrument, price) {
+        this.currentPriceMap.set(instrument, price);
     }
 
     /**
@@ -443,7 +444,7 @@ class Deribit {
                 ).then(() => {
                     this._deribitApi.on(channel, (data) => {
                         if (data['mark_price']) {
-                            this.setCurrentPriceStored(instrument,data['mark_price']);
+                            this.setCurrentPriceStored(instrument, data['mark_price']);
                         }
                         //dbthis.log(`Portfolio Update: `, this.portfolio);
                     });
