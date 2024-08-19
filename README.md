@@ -70,5 +70,5 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ### Funding
 
 This project is looking for funding:
-- [Open Collective](https://opencollective.com/chris-queen-consultingm)
-- [Patreon](https://www.patreon.com/christopherqueenconsultingm)
+- [Open Collective](https://opencollective.com/chris-queen-consulting)
+- [Patreon](https://www.patreon.com/christopherqueenconsulting)
