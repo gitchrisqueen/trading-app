@@ -2,7 +2,7 @@
   "name": "@gitchrisqueen/trading-app",
   "version": "0.1.1",
   "description": "Implementation of trading logic using Deribit data for BTC futures and TDAmeritrade for USD Futures",
-  "type": "module",
+
   "main_non_flow": "./src/app.js",
   "main": "./lib/app.js",
   "scripts": {
@@ -10,10 +10,11 @@
     "prepublish": "npm run build",
     "flow": "flow",
     "pretest": "npm install",
-    "test": "jest",
-    "testdebug": "node --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand",
-    "testdebug2": "node --unhandled-rejections=strict --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand --debug --verbose",
-    "unittestdebug": "node --unhandled-rejections=strict --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand --debug unit",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "testdebug": "node --experimental-vm-modules --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand",
+    "testdebug2": "node --experimental-vm-modules --unhandled-rejections=strict --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand --debug --verbose",
+    "unittestdebug": "node --experimental-vm-modules --unhandled-rejections=strict --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand --debug unit",
+    "inttestdebug": "node --experimental-vm-modules --unhandled-rejections=strict --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand --debug int",
     "killall": "killall -v -9 node && killall -v -9 jest",
     "startdebug": "node -r dotenv/config --trace-warnings --expose-gc --max_old_space_size=4096 ./src/app.js",
     "startlocal": "node -r dotenv/config --max_old_space_size=4096 ./lib/app.js",
@@ -69,6 +70,7 @@
   },
   "devDependencies": {
     "@babel/cli": "^7.24.8",
+    "@babel/plugin-transform-modules-commonjs": "^7.24.8",
     "@babel/preset-env": "^7.25.3",
     "@babel/preset-flow": "^7.24.7",
     "babel-jest": "^29.7.0",

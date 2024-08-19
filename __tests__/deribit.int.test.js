@@ -6,6 +6,10 @@ const DBV2WS = require('deribit-v2-ws-gitchrisqueen'); //TODO: Shouldn't need th
 const Deribit = require('../src/deribit');
 const ut = require('../src/utils'); // TODO: Shouldnt need utils. Try to remove
 
+//import DBV2WS from 'deribit-v2-ws-gitchrisqueen';
+//import Deribit from '../src/deribit';
+//import * as ut from '../src/utils';
+
 const d = new Date();
 d.setSeconds(0, 0);
 const time = d.getTime(); // Take the seconds off the time

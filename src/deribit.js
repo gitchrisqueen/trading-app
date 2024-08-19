@@ -6,6 +6,8 @@ const Connection = require('deribit-v2-ws-gitchrisqueen');
 let bluebird = require('bluebird');
 const utils = require('./utils');
 
+const chalk = import("chalk").then(m => m.default);
+
 class Deribit {
 
     /**
@@ -16,7 +18,7 @@ class Deribit {
     constructor(deribitApi, debug = false) {
         this._debug = debug;
         this._deribitApi = deribitApi;
-        this.chalk = null;
+        this._chalk = null;
         this.loadChalk();
 
         if (this._debug) {
@@ -25,13 +27,13 @@ class Deribit {
                    promise specified by event.promise and the reason in
                    event.reason */
 
-                console.log(chalk.red.bold("[PROCESS] Unhandled Promise Rejection"));
-                console.log(chalk.red.bold("- ".padEnd(30, '- ')));
+                console.log(this._chalk.red.bold("[PROCESS] Unhandled Promise Rejection"));
+                console.log(this._chalk.red.bold("- ".padEnd(30, '- ')));
                 console.log(`Reason`);
                 console.log(reason);
                 console.log(`Promise`);
                 console.log(promise);
-                console.log(chalk.red.bold("- ".padEnd(30, '- ')));
+                console.log(this._chalk.red.bold("- ".padEnd(30, '- ')));
 
             });
         }
@@ -84,16 +86,7 @@ class Deribit {
     }
 
     async loadChalk() {
-        this.chalk = await import('chalk');
-    }
-
-     async log(message, variable = false) {
-        if (!this.chalk) {
-            await this.loadChalk();
-        }
-        if (this._debug) {
-            utils.log(`[Deribit.js]`, message, variable, '#008000');
-        }
+        this._chalk = await chalk;
     }
 
     /**
@@ -193,7 +186,7 @@ class Deribit {
         let startUTC = date.toUTCString();
         date.setTime(stop);
         let stopUTC = date.toUTCString();
-        this.log(`Getting Bars From: ${startUTC} - To: ${stopUTC}`);
+        await this.log(`Getting Bars From: ${startUTC} - To: ${stopUTC}`);
         return await this._deribitApi.get_tradingview_chart_data(instrument, start, stop, resolution)
             .then(response => {
 
@@ -362,7 +355,7 @@ class Deribit {
 
         await this.getInitialPosition(instrument);
 
-        this.log(`My Position: ${JSON.stringify(await this.getPosition())}`);
+        await this.log(`My Position: ${JSON.stringify(await this.getPosition())}`);
 
         // Subscribe to Users Changes (updates related to orders, trades, etc)
         await this.subscribePositionChanges(instrument);
@@ -381,25 +374,25 @@ class Deribit {
             )
             .then(() => {
                 this._deribitApi.on(channel, async (data) => {
-                    this.log(`Data from channel: ${channel}: ${JSON.stringify(data)}`);
+                    await this.log(`Data from channel: ${channel}: ${JSON.stringify(data)}`);
                     if (data['positions']) {
                         if (data['positions'][0]) {
                             let position = data['positions'][0];
                             this.position['leverage'] = (position['leverage']) ? position['leverage'] : this.position['leverage'];
                             this.position['size'] = (position['size']) ? position['size'] : this.position['size'];
                             this.position['floating_profit_loss'] = (position['floating_profit_loss']) ? position['floating_profit_loss'] : this.position['floating_profit_loss'];
-                            this.log(`Position Update: ${JSON.stringify(this.position)}`);
+                            await this.log(`Position Update: ${JSON.stringify(this.position)}`);
                         } else {
-                            this.log(`No Positions Returned. Getting Directly.`);
+                            await this.log(`No Positions Returned. Getting Directly.`);
                             await this.getInitialPosition(instrument);
                         }
                     } else {
-                        this.log(`No Position Change`);
+                        await this.log(`No Position Change`);
                     }
                 });
             })
-            .catch((error) => {
-                this.log(`Could Not Subscribe to Channel: ${channel}`, error);
+            .catch(async (error) => {
+                await this.log(`Could Not Subscribe to Channel: ${channel}`, error);
 
             });
     }
@@ -459,7 +452,7 @@ class Deribit {
                     this.log(`Could Not Subscribe to Channel: ${channel}`, error);
                 });
         } else {
-            this.log(`Already Subscribed to ${channel}`);
+            await this.log(`Already Subscribed to ${channel}`);
         }
 
     }
@@ -585,17 +578,17 @@ class Deribit {
                 orderOptions['trigger'] = "mark_price";
             case this.orderTypes.buylimit:
                 // Place buy order
-                this.log(chalk.rgb(0, 255, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
+                await this.log(this._chalk.rgb(0, 255, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
                 await this._deribitApi.buy(orderOptions)
                     .then((response) => {
                         if (response.error) {
                             throw new Error(JSON.stringify(response.error));
                         }
                         //dbthis.log('Buy Response: ', response);
-                        this.log(chalk.rgb(69, 255, 0)(`${orderType} | ${label} | placed.`));
+                        this.log(this._chalk.rgb(69, 255, 0)(`${orderType} | ${label} | placed.`));
                     })
                     .catch((error) => {
-                        this.log(chalk.rgb(255, 69, 0)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error.message}`));
+                        this.log(this._chalk.rgb(255, 69, 0)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error.message}`));
                         throw new Error(error.message);
                     });
                 break;
@@ -606,17 +599,17 @@ class Deribit {
                 orderOptions['trigger'] = "mark_price";
             case this.orderTypes.selllimit:
                 // Place sell order
-                this.log(chalk.rgb(255, 0, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
+                await this.log(this._chalk.rgb(255, 0, 0)(`Placing ${orderType} | Options: ${JSON.stringify(orderOptions)}`));
                 await this._deribitApi.sell(orderOptions)
                     .then((response) => {
                         if (response.error) {
                             throw new Error(JSON.stringify(response.error));
                         }
                         //dbthis.log('Sell Response: ', response);
-                        this.log(chalk.rgb(255, 0, 0)(`${orderType} | ${label} | placed.`));
+                        this.log(this._chalk.rgb(255, 0, 0)(`${orderType} | ${label} | placed.`));
                     })
                     .catch((error) => {
-                        this.log(chalk.rgb(32, 178, 170)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error.message}`));
+                        this.log(this._chalk.rgb(32, 178, 170)(`placeOrder(${orderType},...) | Options: ${JSON.stringify(orderOptions)} Error: ${error.message}`));
                         throw new Error(error.message);
                     });
                 break;
@@ -632,10 +625,12 @@ class Deribit {
      * @param message
      * @param variable
      */
-    log(message, variable = false) {
+    async log(message, variable = false) {
         if (this._debug) {
-            utils.log(`[Deribit.js]`, message, variable, '#008000');
+            await utils.log(`[Deribit.js]`, message, variable, '#008000');
         }
     }
 }
+
 module.exports = Deribit;
+//export default Deribit;

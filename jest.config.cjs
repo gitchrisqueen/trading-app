@@ -191,7 +191,7 @@ module.exports = {
     // transform: undefined,
     // Use babel-jest for transforming JavaScript files
     transform: {
-    "^.+\\.jsx?$": "babel-jest"
+     "^.+\\.(js|jsx)$": "babel-jest"
   },
 
     // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation

@@ -2,16 +2,16 @@
  * Copyright (c) 2020. Christopher Queen Consulting LLC (http://www.ChristopherQueenConsulting.com/)
  */
 
-
+const chalk = import("chalk").then(m => m.default);
 
 class Utils {
-     constructor() {
-        this.chalk = null;
+    constructor() {
+        this._chalk = null;
         this.loadChalk();
     }
 
     async loadChalk() {
-        this.chalk = await import('chalk');
+        this._chalk = await chalk
     }
 
     /**
@@ -95,14 +95,14 @@ class Utils {
      * @param {number} padLength - length to pad after the fileName with '-'
      */
     async log(fileName, message, variable = false, logColor = "#000000", padLength = 33) {
-        if (!this.chalk) {
+        if (!this._chalk) {
             await this.loadChalk();
         }
         let maskedFileName = fileName.padEnd(padLength, '-') + '> ';
         if (variable !== false) {
             message = message + JSON.stringify(variable);
         }
-        message = chalk.hex(logColor).bold(maskedFileName) + chalk.bgHex(logColor).hex('#000000').bold(` ${message} `);
+        message = this._chalk.hex(logColor).bold(maskedFileName) + this._chalk.bgHex(logColor).hex('#000000').bold(` ${message} `);
         console.log(message);
     }
 
@@ -152,4 +152,8 @@ class Utils {
     }
 
 }
-module.exports = new Utils();
+
+const utils = new Utils();
+
+module.exports = utils;
+//export default utils;
