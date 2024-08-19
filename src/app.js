@@ -11,7 +11,6 @@ const TradingLogic = require('./tradinglogic.js');
 const {deribit_api_url, deribit_api_key, deribit_api_secret, port, host} = require('../config');
 
 const debug = true;
-let tradingLogic = false;
 
 function startDeribitLogic(app) {
     // UDF Directory
@@ -28,7 +27,7 @@ function startDeribitLogic(app) {
             debug: debug
         });
         let deribitApi = new Deribit(dbvws, debug);
-        tradingLogic = new TradingLogic(deribitApi, debug);
+        let tradingLogic = new TradingLogic(deribitApi, debug);
         let incomeLevel = (process.env.INCOMELEVEL) ? process.env.INCOMELEVEL : tradingLogic.getIncomeLevels().daily;
         tradingLogic.setIncomeLevel(incomeLevel);
 
@@ -56,6 +55,35 @@ function startTDALogic(app) {
     // UDF Directory
     const {udfapp, udf} = require('./udf/tdameritrade/index');
     app.use('/udf', udfapp);
+
+    /*
+    // Start TradingLogic
+    let tradingLogic = new TradingLogic(udf, debug);
+    let incomeLevel = (process.env.INCOMELEVEL) ? process.env.INCOMELEVEL : tradingLogic.getIncomeLevels().daily;
+    tradingLogic.setIncomeLevel(incomeLevel);
+
+
+    (async () => {
+        utils.log(`Starting ${tradingLogic.getIncomeLevel()} Trading`);
+        //await tradingLogic.init();
+        return tradingLogic.init();
+    })();
+
+
+
+
+// TODO: Return Queued orders as json for tradingview chart to draw
+    let orders = tradingLogic.getQueuedOrders();
+    const orderEntriesArray = Object.fromEntries(orders.entries());
+    app.use('/orders', JSON.stringify(orderEntriesArray));
+
+
+
+     */
+
+// TODO: Return orders a json for tradingview chart to draw
+// TODO: Return position for tradingview chart to draw
+// TODO: Return zones as json to be charted (including fresh zones)
 
 }
 
@@ -102,11 +130,16 @@ app.use((err, req, res, next) => {
         })
     }
 
-    console.error(err)
+    console.error('Error: Not Found');
+    console.error('Details:', {
+        status: err.status,
+        message: err.message,
+        url: err.response.req.url
+    });
+
     res.status(500).send({
         s: 'error',
-        errmsg: 'Internal Error'
-    })
+        errmsg: 'Internal Error: ' + err.message  })
 })
 
 // Listen

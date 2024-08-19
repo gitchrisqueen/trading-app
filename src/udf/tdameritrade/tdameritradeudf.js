@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2024. Christopher Queen Consulting LLC (http://www.ChristopherQueenConsulting.com/)
+ */
+
 const TDAmeritrade = require('../../tdameritrade');
 const tda = new TDAmeritrade();
 
@@ -16,6 +20,7 @@ class UDF {
      */
     constructor() {
 
+        //TODO: Pull this from DB or some updated text file
         this.futuresSymbolsArray = ['/ES', '/GC', '/NG', '/YM', '/ZB', '/ZF', '/NQ'];
 
         this.supportedResolutions = ['1', '5', '10', '15', '30','60', '240', '1D'];

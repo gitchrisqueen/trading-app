@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# Copyright (c) 2024. Christopher Queen Consulting LLC (http://www.ChristopherQueenConsulting.com/)
+#
+
+set -e
 BASEDIR=$(dirname "$0")
 
 # Load env variables (in the .env file)
@@ -8,6 +13,7 @@ set +o allexport
 
 dockerConfig="'$(< $BASEDIR/../aws_docker_config.json)'"
 restartBash="'$(< $BASEDIR/restart-docker-containers.sh)'"
+SRCFOLDER="$BASEDIR/../src"
 #echo "$dockerConfig";
 #echo "$restartBash";
 
@@ -20,15 +26,15 @@ select doBuild in "Yes" "No"; do
   case "$doBuild" in
   "Yes")
     # Build Image Locally
-    docker build -t "$dockerImage" ./
+    docker build -t "$dockerImage" ./ || { echo "Docker build failed"; exit 1; }
     # Push to Docker Hub
-    docker push "$dockerImage"
+    docker push "$dockerImage" || { echo "Docker push failed"; exit 1; }
     break
     ;;
   "No")
     break
     ;;
-  *) echo invalid option ;;
+  *) echo "Invalid Option"; exit 1; ;;
   esac
 done
 
@@ -59,7 +65,7 @@ select incomeLevel in "Intra-Day" "Hourly" "Daily"; do
     client_secret="${SECRET_3}"
     break
     ;;
-  *) echo invalid option ;;
+  *) echo "Invalid Option"; exit 1; ;;
   esac
 done
 
@@ -78,7 +84,7 @@ select type in "test" "live"; do
     secret="$client_secret"
     break
     ;;
-  *) echo invalid option ;;
+  *) echo "Invalid Option"; exit 1; ;;
   esac
 done
 
@@ -98,11 +104,11 @@ function getDockerScript() {
 
   # Stop any previous container
   echo "Stopping Previous Containers"
-  docker stop $(docker ps -aq -f "name=TradingApp" --format "{{.Names}}")
+  docker stop $(docker ps -aq -f "name=TradingApp" --format "{{.Names}}") || { echo "No Previous Containers to Stop";}
 
   # Remove any previous containers
   echo "Removing Previous Containers"
-  docker rm $(docker ps -aq -f "name=TradingApp" --format "{{.Names}}")
+  docker rm $(docker ps -aq -f "name=TradingApp" --format "{{.Names}}") || { echo "No Previous Containers to Remove";}
 
   # Pull Latest Image
   echo "Pulling latest docker image"
@@ -113,6 +119,7 @@ function getDockerScript() {
   #docker run -t --memory 983m -a STDOUT -a STDERR --name "$appName" --restart unless-stopped -e INCOMELEVEL="$incomeLevel" -e DOMAIN="$deribit_url" -e KEY="$key" -e SECRET="$secret" "$dockerImage"
   # Detached
   echo "Starting the docker container detached"
+
   docker run \
     -d \
     -t \

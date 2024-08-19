@@ -54,6 +54,34 @@ typings/
 # next.js build output
 .next
 
+# IntelliJ IDEA project files
+.idea/
+
+# Visual Studio Code project files
+.vscode/
+
+# Build output directories
+dist/
+lib/
+
+# TypeScript build info files
+*.tsbuildinfo
+
+# Python bytecode cache directories
+__pycache__/
+
+# Python compiled files
+*.pyc
+*.pyo
+
+# Private directories
 priv*
 
+# macOS specific files
 .DS_Store
+
+# Jest cache and output
+jest/
+
+# Temporary files or directories
+temp/

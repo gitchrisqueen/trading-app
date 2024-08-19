@@ -2,9 +2,18 @@
  * Copyright (c) 2020. Christopher Queen Consulting LLC (http://www.ChristopherQueenConsulting.com/)
  */
 
-const chalk = require("chalk");
+
 
 class Utils {
+     constructor() {
+        this.chalk = null;
+        this.loadChalk();
+    }
+
+    async loadChalk() {
+        this.chalk = await import('chalk');
+    }
+
     /**
      * Return the number of days in the given month and year
      * @param month
@@ -85,7 +94,10 @@ class Utils {
      * @param {string} logColor - Hexadecimal value representing the desired color for log output.
      * @param {number} padLength - length to pad after the fileName with '-'
      */
-    log(fileName, message, variable = false, logColor = "#000000", padLength = 33) {
+    async log(fileName, message, variable = false, logColor = "#000000", padLength = 33) {
+        if (!this.chalk) {
+            await this.loadChalk();
+        }
         let maskedFileName = fileName.padEnd(padLength, '-') + '> ';
         if (variable !== false) {
             message = message + JSON.stringify(variable);

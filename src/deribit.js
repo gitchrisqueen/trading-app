@@ -4,7 +4,6 @@
 
 const Connection = require('deribit-v2-ws-gitchrisqueen');
 let bluebird = require('bluebird');
-const chalk = require("chalk");
 const utils = require('./utils');
 
 class Deribit {
@@ -17,6 +16,8 @@ class Deribit {
     constructor(deribitApi, debug = false) {
         this._debug = debug;
         this._deribitApi = deribitApi;
+        this.chalk = null;
+        this.loadChalk();
 
         if (this._debug) {
             process.on("unhandledRejection", function (reason, promise) {
@@ -80,6 +81,19 @@ class Deribit {
             selllimit: "sell_limit",
             sellstopmarket: "sell_stop_market"
         };
+    }
+
+    async loadChalk() {
+        this.chalk = await import('chalk');
+    }
+
+     async log(message, variable = false) {
+        if (!this.chalk) {
+            await this.loadChalk();
+        }
+        if (this._debug) {
+            utils.log(`[Deribit.js]`, message, variable, '#008000');
+        }
     }
 
     /**

@@ -1375,6 +1375,10 @@ class TradingLogic {
         }
     }
 
+    getQueuedOrders(){
+        return this.ordersQueue;
+    }
+
     async placeQueuedBracketOrders() {
         //TODO: Make these pull from a database
 
