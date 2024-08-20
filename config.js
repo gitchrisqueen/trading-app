@@ -9,7 +9,7 @@ if (result.error) {
     throw result.error;
 }
 const { parsed: envs } = result;
-console.log("Environement Variables:",envs);
+console.log("Environment Variables:",envs);
 // TODO: Remove this in production
 
 module.exports = {
