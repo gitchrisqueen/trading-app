@@ -4,6 +4,14 @@
   "description": "Implementation of trading logic using Deribit data for BTC futures and TDAmeritrade for USD Futures",
   "main_non_flow": "./src/app.js",
   "main": "./lib/app.js",
+  "config": {
+    "logicType": "none",
+    "use_these_logicType_options": [
+      "tda",
+      "deribit",
+      "none"
+    ]
+  },
   "scripts": {
     "build": "babel ./src/ -d ./lib/",
     "prepublish": "npm run build",
@@ -15,9 +23,9 @@
     "testunitdebug": "node --experimental-vm-modules --unhandled-rejections=strict --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand --debug unit",
     "testintdebug": "node --experimental-vm-modules --unhandled-rejections=strict --trace-warnings --expose-gc node_modules/.bin/jest --no-cache --detectOpenHandles --runInBand --debug int",
     "killall": "killall -v -9 node && killall -v -9 jest",
-    "startdebug": "node -r dotenv/config --trace-warnings --expose-gc --max_old_space_size=4096 ./src/app.js",
-    "startlocal": "node -r dotenv/config --max_old_space_size=4096 ./lib/app.js",
-    "start": "node ./lib/app.js",
+    "startdebug": "node --watch -r dotenv/config --trace-warnings --expose-gc --max_old_space_size=4096 ./src/app.js $npm_package_config_logicType",
+    "startlocal": "node --watch -r dotenv/config --max_old_space_size=4096 ./src/app.js $npm_package_config_logicType",
+    "start": "node ./lib/app.js $npm_package_config_logicType",
     "preversion": "npm run test",
     "version": "",
     "postversion": "git push && git push --tags && rm -rf build/temp",
@@ -62,6 +70,7 @@
     "events": "^3.3.0",
     "express": "^4.19.2",
     "isomorphic-ws": "^5.0.0",
+    "marked": "^14.0.0",
     "morgan": "^1.10.0",
     "serve-static": "^1.15.0",
     "urldecode": "^1.0.1",

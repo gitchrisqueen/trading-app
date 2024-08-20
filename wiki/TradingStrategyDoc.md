@@ -1,8 +1,4 @@
-[![TradingApp Workflow CI](https://github.com/gitchrisqueen/btc-trading-app/workflows/TradingApp%20Workflow%20CI/badge.svg)](https://github.com/gitchrisqueen/btc-trading-app/actions?query=workflow%3A%22TradingApp+Workflow+CI%22)
- [![codecov](https://codecov.io/gh/gitchrisqueen/btc-trading-app/branch/master/graph/badge.svg?token=LWZJEUV38A)](https://codecov.io/gh/gitchrisqueen/btc-trading-app)
-
-# btc-trading-app
-BTC Trading App on Deribit Market
+# Trading Strategy
 
 ## Terms
 
@@ -22,9 +18,9 @@ BTC Trading App on Deribit Market
 13. Short Position =  a position that is sold now with the intent to buy later at a lower price. Futures & Forex do not have “shorting” restrictions.
 14. Reward-to-Risk Ratio = 2.00/.50 = 4. This is a 4:1 PR or a “4R” trade.
     1. Don’t want to take anything less than a 3:1 ratio (as a beginner)
-15. ![alt_text](images/image2.png "Terminology")
-16. ![alt_text](images/image34.png "Terminology")
-17. ![alt_text](images/image28.png "Terminology")
+15. ![Terminology](images/image2.png "Terminology")
+16. ![Terminology](images/image34.png "Terminology")
+17. ![Terminology](images/image28.png "Terminology")
 
 ## Charting
 
@@ -41,7 +37,7 @@ BTC Trading App on Deribit Market
 7. Daily Income Trader: Daily, 60 min & 15 min charts
 8. Weekly Income Trader: Weekly, Daily & 240 /60 min charts
 9. Monthly Income Trader: Monthly, Weekly, & Daily charts
-10. ![alt_text](images/image30.png "image_tooltip")
+10. ![Basic Candlesticks](images/image30.png "Basic Candlesticks")
     1. Body = Open - Close
     2. Range = High - Low
     3. Boring Candles: Imply that supply and demand is in balance and that orders are potentially by accumulated by the institutions
@@ -52,14 +48,14 @@ BTC Trading App on Deribit Market
 
 ## Supply & Demand
 
-1. ![alt_text](images/image19.png "Basic Candlesticks")
+1. ![Where do market prices turn](images/image19.png "Where do market prices turn")
 2. Two Core Setups
     1. Drop Base Rally = DBR
         1. Action = Buy Retracement
     2. Rally Base Drop = RBD
         2. Action = Sell Retracement
-    3. ![alt_text](images/image32.png "Where do market prices turn")
-    4. ![alt_text](images/image13.png "Two Core Strategy Setups")
+    3. ![Two Core Strategy Setups](images/image32.png "Two Core Strategy Setups")
+    4. ![Setups In Summary](images/image13.png "Setups In Summary")
 
 ## Supply & Demand Zones
 

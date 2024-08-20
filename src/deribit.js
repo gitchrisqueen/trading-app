@@ -2,11 +2,11 @@
  * Copyright (c) 2020. Christopher Queen Consulting LLC (http://www.ChristopherQueenConsulting.com/)
  */
 
-const Connection = require('deribit-v2-ws-gitchrisqueen');
-let bluebird = require('bluebird');
+//const Connection = require('deribit-v2-ws-gitchrisqueen');
+//let bluebird = require('bluebird');
 const utils = require('./utils');
 
-const chalk = import("chalk").then(m => m.default);
+const chalk = import("chalk").then(m => m.default || m);
 
 class Deribit {
 

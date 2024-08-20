@@ -7,6 +7,9 @@ const DBV2WS = require('deribit-v2-ws-gitchrisqueen');
 const Deribit = require('./deribit.js');
 const TradingLogic = require('./tradinglogic.js');
 
+// Add a parameter to determine the logic to start
+const logicType = process.argv[2] || process.env.LOGIC_TYPE || 'none';
+
 // Environment Variables
 const {deribit_api_url, deribit_api_key, deribit_api_secret, port, host} = require('../config');
 
@@ -96,6 +99,10 @@ app.use(cors());
 const morgan = require('morgan');
 app.use(morgan('tiny'));
 
+const fs = require('fs');
+const path = require('path');
+const marked = require('marked');
+
 // Common
 const query = require('./query');
 
@@ -109,17 +116,67 @@ function handlePromise(res, next, promise) {
 
 // Endpoints
 app.all('/', (req, res) => {
-    res.set('Content-Type', 'text/plain').send('Welcome to the Trading App.');
-    //TODO: Return the index.html file instead
+    //res.set('Content-Type', 'text/plain').send('Welcome to the Trading App.');
+    // Return the TradingStragegyDoc.md as html
+    const readmePath = path.join(__dirname, '../wiki//TradingStrategyDoc.md');
+    fs.readFile(readmePath, 'utf8', (err, data) => {
+        if (err) {
+            res.status(500).send('Error reading TradingStrategyDoc.md file');
+            return;
+        }
+        const htmlContent = marked.parse(data);
+
+        const fullHtml = `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>README</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                padding: 20px;
+                max-width: 800px;
+                margin: 0 auto;
+              }
+              pre {
+                background-color: #f4f4f4;
+                padding: 10px;
+                border-radius: 5px;
+              }
+            </style>
+          </head>
+          <body>
+            ${htmlContent}
+          </body>
+          </html>
+        `;
+
+        // Send the HTML response
+        res.setHeader('Content-Type', 'text/html');
+        res.send(fullHtml);
+    });
 })
+
+// Wiki Images endpoint to serve all the images in the wiki
+app.use('/images', express.static(path.join(__dirname, '../wiki/images')));
 
 // Tradingview Directory
 app.use('/tradingview', express.static(__dirname + '/tradingview'));
 app.use('/src', express.static(__dirname));
 
-// Start desired Logic and set UDF paths
-//startDeribitLogic(app);
-startTDALogic(app);
+// Start desired Logic and set UDF paths - Use params sent to app.js to determine which logic to start
+if (logicType === 'deribit') {
+    startDeribitLogic(app);
+} else if (logicType === 'tda') {
+    startTDALogic(app);
+} else if (logicType === 'none') {
+    console.log('Not starting any trading logic');
+} else {
+    console.error('Invalid logic type specified. Use "deribit" or "tda".');
+}
 
 // Handle errors
 app.use((err, req, res, next) => {
@@ -139,7 +196,8 @@ app.use((err, req, res, next) => {
 
     res.status(500).send({
         s: 'error',
-        errmsg: 'Internal Error: ' + err.message  })
+        errmsg: 'Internal Error: ' + err.message
+    })
 })
 
 // Listen
