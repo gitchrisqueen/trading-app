@@ -53,7 +53,7 @@
     1. Drop Base Rally = DBR
         1. Action = Buy Retracement
     2. Rally Base Drop = RBD
-        2. Action = Sell Retracement
+        1. Action = Sell Retracement
     3. ![Two Core Strategy Setups](images/image32.png "Two Core Strategy Setups")
     4. ![Setups In Summary](images/image13.png "Setups In Summary")
 
