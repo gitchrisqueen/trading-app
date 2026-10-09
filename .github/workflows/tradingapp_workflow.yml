@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20.x]
+        node-version: [22.x]
     steps:
       - uses: actions/checkout@v4
       - name: Cache node modules
@@ -68,13 +68,13 @@ jobs:
       - name: Download Code Coverage Report
         uses: actions/download-artifact@v4
         with:
-          name: code-coverage-report-20.x
-          path: code-coverage-report-20.x
+          name: code-coverage-report-22.x
+          path: code-coverage-report-22.x
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: code-coverage-report-20.x/clover.xml
+          files: code-coverage-report-22.x/clover.xml
           flags: unittests
           env_vars: OS
           name: codecov-umbrella
