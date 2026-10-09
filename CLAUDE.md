@@ -43,7 +43,9 @@ npm run testunitdebug     # unit tests only (*.unit.test.js)
 npm run testintdebug      # integration tests only (*.int.test.js)
 ```
 
-`*.int.test.js` files talk to the Deribit test network. Coverage thresholds are 80% global
+`*.int.test.js` files talk to the Deribit test network. `deribit.int.test.js` reads its testnet
+credentials from `DERIBIT_TEST_KEY` and `DERIBIT_TEST_SECRET` and skips itself when either is
+unset; never hard-code key values in tests. Coverage thresholds are 80% global
 (50% branches for `src/utils.js`), set in `jest.config.js`.
 
 ## Conventions

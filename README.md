@@ -59,6 +59,26 @@ To start the trading bot, run:
 npm start
 ```
 
+### Running Tests
+
+```sh
+npm test
+```
+
+Unit tests (`__tests__/*.unit.test.js`) run offline. The Deribit integration test
+(`__tests__/deribit.int.test.js`) talks to the Deribit **test network** (`test.deribit.com`) and
+needs a testnet API key. Create one in your own test.deribit.com account and export it before
+running the tests:
+
+```sh
+export DERIBIT_TEST_KEY=<your testnet client id>
+export DERIBIT_TEST_SECRET=<your testnet client secret>
+npm test
+```
+
+When either variable is unset, the integration suite is skipped. Never commit key values; keep
+them in your shell or in a local `.env` file, which is git-ignored.
+
 ### Contributing
 
 Contributions are welcome! Please refer to the [Contribution Guidelines](CONTRIBUTING.md) for more information.

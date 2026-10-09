@@ -14,12 +14,21 @@ const d = new Date();
 d.setSeconds(0, 0);
 const time = d.getTime(); // Take the seconds off the time
 
-const key = '3hjn18oV';
-const secret = '8q5CotqH3hZv-01-CM-X00kT2lNWdMbPcOfbx0xZ8b4';
+// Credentials for the Deribit TEST network (test.deribit.com) come from the environment.
+// Never hard-code real values here. When either variable is unset, this suite is skipped.
+const key = process.env.DERIBIT_TEST_KEY;
+const secret = process.env.DERIBIT_TEST_SECRET;
+const hasCredentials = Boolean(key && secret);
+const describeIfCredentials = hasCredentials ? describe : describe.skip;
 const domain = 'test.deribit.com';
 const debug = false;
-const dbvws = new DBV2WS({key, secret, domain, debug});
-const dbit = new Deribit(dbvws, debug);
+const dbvws = hasCredentials ? new DBV2WS({key, secret, domain, debug}) : null;
+const dbit = hasCredentials ? new Deribit(dbvws, debug) : null;
+
+if (!hasCredentials) {
+    // eslint-disable-next-line no-console
+    console.warn('Skipping deribit.int.test.js: set DERIBIT_TEST_KEY and DERIBIT_TEST_SECRET to run it against test.deribit.com.');
+}
 
 //jest.setTimeout(10000); // 10 seconds
 
@@ -32,7 +41,7 @@ afterAll(() => {
 });
 
 
-describe(`Asynchronous Functions`, () => {
+describeIfCredentials(`Asynchronous Functions`, () => {
     beforeAll(async () => {
         await dbit.init();
     });
