@@ -76,8 +76,16 @@ export DERIBIT_TEST_SECRET=<your testnet client secret>
 npm test
 ```
 
-When either variable is unset, the integration suite is skipped. Never commit key values; keep
-them in your shell or in a local `.env` file, which is git-ignored.
+When either variable is unset, the integration suite is skipped. Jest does not load `.env`, so
+the variables must be exported in the shell that runs the tests. If you keep them in a local
+`.env` file (git-ignored), export it first:
+
+```sh
+set -a; . ./.env; set +a
+npm test
+```
+
+Never commit key values.
 
 ### Contributing
 
